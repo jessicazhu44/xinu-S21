@@ -1,0 +1,6 @@
+### Question 1
+Yes, the output doesn’t have any regularities. While two processes run concurrently, they don’t take the same amount of processing time during an iteration. It is much faster to produce values than consume because the process of printing info on a console during consume takes much longer. 
+In the mean time, computer is switching between these two processes. Not all produced numbers are consumed. Some fragmented text was printed because process was interrupted. Only some are consumed and printed on the console.
+
+### Question 2
+After checking output using count = 20, I found that not all produced values were consumed: only some of the values between 1-20 were printed on console. 
