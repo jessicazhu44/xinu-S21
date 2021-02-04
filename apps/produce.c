@@ -6,8 +6,10 @@ void producer(int count) {
     // the value of the global variable 'n'
     // each time.
     //print produced value e.g. produced : 8
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i <= count; i++) {
+    	wait(w_sem);
     	n = i;
     	printf("produced : %d\n", n);
+    	signal(r_sem);
     }
 }
