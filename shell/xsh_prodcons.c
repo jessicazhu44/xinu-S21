@@ -7,11 +7,14 @@
 int n;                 //Definition for global variable 'n'
 /*Now global variable n will be on Heap so it is accessible all the processes i.e. consume and produce*/
 
+
 shellcmd xsh_prodcons(int nargs, char *args[])
 {
   //Argument verifications and validations
-  int count = 2000;             //local varible to hold count
-  
+  int count = 200;             //local varible to hold count
+  r_sem = semcreate(0);
+  w_sem = semcreate(1);
+
   //check args[1] if present assign value to count
   if (nargs > 2) {
 	fprintf(stderr, "%s: too many arguments\n", args[0]);
