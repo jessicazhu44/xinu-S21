@@ -16,11 +16,12 @@ shellcmd xsh_prodcons(int nargs, char *args[])
   w_sem = semcreate(1);
 
   //check args[1] if present assign value to count
+  /*
   if (nargs > 2) {
 	fprintf(stderr, "%s: too many arguments\n", args[0]);
 	return 1;
    }
-
+  */
    /* initialize count value if given */
   if (nargs == 2) {
   	count = atoi(args[1]);
