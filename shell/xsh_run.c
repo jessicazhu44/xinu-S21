@@ -12,7 +12,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
       return OK;
     } 
 
-    if ((nargs == 2) || (strncmp(args[1], "hello", 5) != 0) && (strncmp(args[1], "prodcons", 8) != 1) && (strncmp(args[1], "list", 4) != 0)) {
+    if ((nargs == 2) && (strncmp(args[1], "hello", 5) != 0) && (strncmp(args[1], "prodcons", 8) != 0)) {
       printf("hello\n"); 
       printf("list\n");
       printf("prodcons\n");
