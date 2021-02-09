@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <shprototypes.h>
+#include <ctype.h>
 
 shellcmd xsh_run(int nargs, char *args[]) {
 
@@ -27,7 +28,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
 
     if(strncmp(args[0], "hello", 5) == 0) {
     	if (nargs == 1) {
-    		printf("run hello [name]\n");
+    		printf("Syntax: run hello [name]\n");
     		return 0;
     	}
       /* create a process with the function as an entry point. */
@@ -35,10 +36,12 @@ shellcmd xsh_run(int nargs, char *args[]) {
       // printf("run hello %s\n", args[0]);
     }
     if(strncmp(args[0], "prodcons", 8) == 0) {
-    	if (nargs == 1) {
-    		printf("run prodcons [counter]\n");
+    	if (nargs == 2) {
+    	for(int i = 0, n = strlen(args[1]); i < n; i++) {
+			if(!isdigit(args[1][i])){ 
+    		printf("Syntax: run prodcons [counter]\n");
     		return 0;
-    	}
+    	}}}
       /* create a process with the function as an entry point. */
       resume (create((void *)xsh_prodcons, 4096, 20, "prodcons", 2, nargs, args));
       // printf("run prodcons %s\n", args[0]);
