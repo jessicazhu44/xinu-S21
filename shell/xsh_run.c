@@ -27,7 +27,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
     nargs--;
 
     if(strncmp(args[0], "hello", 5) == 0) {
-    	if (nargs == 1) {
+    	if (nargs == 1 || nargs > 2) {
     		printf("Syntax: run hello [name]\n");
     		return 0;
     	}
@@ -42,6 +42,10 @@ shellcmd xsh_run(int nargs, char *args[]) {
     		printf("Syntax: run prodcons [counter]\n");
     		return 0;
     	}}}
+    	if (nargs > 2) {
+    		printf("Syntax: run prodcons [counter]\n");
+    		return 0;
+    	}
       /* create a process with the function as an entry point. */
       resume (create((void *)xsh_prodcons, 4096, 20, "prodcons", 2, nargs, args));
       // printf("run prodcons %s\n", args[0]);
