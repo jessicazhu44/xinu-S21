@@ -14,8 +14,10 @@ void consumer_bb(int id, int count) {
 		readVal = arr_q[tail];
 		printf("name : consumer_%d,read : %d\n", id, readVal);
 		tail =  (tail + 1) % 5;
+		
 		signal(mutex);
 		signal(w_sem);
+
 	}
 }
 

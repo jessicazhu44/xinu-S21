@@ -12,8 +12,8 @@ int32 arr_q[5];
 // definition of array, semaphores and indices 
 void prodcons_bb(int nargs, char *args[]) {
   //create and initialize semaphores to necessary values
-  w_sem = semcreate(0);
-  r_sem = semcreate(5);
+  w_sem = semcreate(5);
+  r_sem = semcreate(0);
   mutex = semcreate(1);
 
   //initialize read and write indices for the queue

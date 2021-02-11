@@ -1,12 +1,14 @@
 #include <xinu.h>
 #include <prodcons.h>
 #include <prodcons_bb.h>
-// where to use mutex?
+
 void producer_bb(int id, int count) {
   // Iterate from 0 to count and for each iteration add iteration value to the global array `arr_q`, 
   // print producer id (starting from 0) and written value as,
   // name : producer_X, write : X
-    for(int i = 0; i <= count; i++) {
+    // printf("id: %d, count:%d\n", id, count);
+    for(int i = 0; i < count; i++) {
+
         wait(w_sem);
         wait(mutex);
         arr_q[head] = i;
