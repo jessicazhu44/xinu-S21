@@ -18,7 +18,7 @@ void future_prodcons(int nargs, char *args[])
     // argument handing: you should make sure arguments are either "g" or "s" or a number. 
     // -pc is the 2nd argument, when -pc is passed expected variable number of arguments
     if (nargs <= 2) {
-      printf("Syntax: run futest [-pc [g ...] [sxsh $  VALUE ...]|-f]\n");
+      printf("1Syntax: run futest [-pc [g ...] [sxsh $  VALUE ...]|-f]\n");
       return;
     }
 
@@ -48,7 +48,7 @@ void future_prodcons(int nargs, char *args[])
           i++;
           continue;
         } 
-        printf("Syntax: run futest [-pc [g ...] [sxsh $  VALUE ...]|-f]\n");
+        printf("2Syntax: run futest [-pc [g ...] [sxsh $  VALUE ...]|-f]\n");
         return;
     }
 
