@@ -64,7 +64,7 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 		if(f->state == FUTURE_READY) {
 			// when it is FUTURE_READY, the next future_get() call return set value 
 			// and the future becomes EMPTY
-			out = f->data; //return the set value
+			memcpy(out, f->data, f->size); //return the set value
 			
 			f->state = FUTURE_EMPTY;
 			f->pid = -1;
