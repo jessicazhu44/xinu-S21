@@ -5,11 +5,81 @@
 #include <ctype.h>
 #include <prodcons_bb.h>  
 #include <stdlib.h>
+#include <future.h>
+#include <future_prodcons.h>
 
 int32 head;
 int32 tail;
 int32 arr_q[5];
 // definition of array, semaphores and indices 
+
+void future_prodcons(int nargs, char *args[])
+{
+    // argument handing: you should make sure arguments are either "g" or "s" or a number. 
+    // -pc is the 2nd argument, when -pc is passed expected variable number of arguments
+    if (nargs <= 2) {
+      printf("Syntax: run futest [-pc [g ...] [sxsh $  VALUE ...]|-f]\n");
+      return;
+    }
+
+    print_sem = semcreate(1);
+    future_t* f_exclusive;
+    f_exclusive = future_alloc(FUTURE_EXCLUSIVE, sizeof(int), 1);
+
+    // First, try to iterate through the arguments and make sure they are all valid based on the requirements 
+    // (you may assume the argument after "s" there is always a number)
+    int i = 2;
+    while (i < nargs)
+    {
+        // write your code here to check the validity of arguments
+        if (strcmp(args[i], "s") == 0) {
+          //printf("wrong inputs from %s, num: %d\n", args[i], i);
+          int x = atoi(args[i+1]);
+          if (x == 0) {
+              printf("wrong inputs from s\n");
+              return;
+          }
+          i = i + 2;
+          continue;
+        } 
+        
+        if (strcmp(args[i], "g") == 0 ) {
+          // printf("this is %s, num: %d\n", args[i], i);
+          i++;
+          continue;
+        } 
+        printf("Syntax: run futest [-pc [g ...] [sxsh $  VALUE ...]|-f]\n");
+        return;
+    }
+
+    int num_args = i;  // keeping number of args to create the array
+    i = 2; // reseting the index 
+    char* val  =  (char *) getmem(num_args); // initializing the array to keep the "s" numbers
+
+    // Iterate again through the arguments and create the following processes based on the passed argument ("g" or "s VALUE")
+
+    while (i < nargs)
+    {
+      if (strcmp(args[i], "g") == 0){
+        char id[10];
+        sprintf(id, "fcons%d",i);
+        // printf("%s\n", args[i]);
+        resume(create(future_cons, 2048, 20, id, 1, f_exclusive));    
+      }
+      if (strcmp(args[i], "s") == 0){
+        i++;
+        uint8 number = atoi(args[i]);
+        val[i] = number;
+        resume(create(future_prod, 2048, 20, "fprod1", 2, f_exclusive, &val[i]));
+        sleepms(5);
+      }
+      i++;
+    }
+    sleepms(100);
+    future_free(f_exclusive);
+}
+
+
 void prodcons_bb(int nargs, char *args[]) {
   //create and initialize semaphores to necessary values
   w_sem = semcreate(5);
@@ -43,6 +113,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
       printf("list\n");
       printf("prodcons\n");
       printf("prodcons_bb\n");
+      printf("futest\n");
       return OK;
     } 
 
@@ -51,6 +122,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
       printf("list\n");
       printf("prodcons\n");
       printf("prodcons_bb\n");
+      printf("futest\n");
       return OK;
     }
 
@@ -59,6 +131,13 @@ shellcmd xsh_run(int nargs, char *args[]) {
     */
     args++;
     nargs--;
+
+    if(strncmp(args[0], "futest", 6) == 0) { 
+
+      resume( create(future_prodcons, 1024, 20, "future_prodcons", 2, nargs, args));
+      return 0;
+    }
+
 
     if(strncmp(args[0], "hello", 5) == 0) {
     	if (nargs == 1 || nargs > 2) {
