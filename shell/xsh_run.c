@@ -204,7 +204,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
       }
 
       if (strncmp(args[1], "-f", 2) == 0) {
-          if (nargs != 2) {
+          if (nargs != 3) {
               printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
               return 0;           
           }
