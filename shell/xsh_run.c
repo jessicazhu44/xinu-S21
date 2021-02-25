@@ -7,11 +7,75 @@
 #include <stdlib.h>
 #include <future.h>
 #include <future_prodcons.h>
+#include <future_fib.h>
 
+// variable for future_prodcons
 int32 head;
 int32 tail;
 int32 arr_q[5];
 // definition of array, semaphores and indices 
+
+// variable for future_fib
+
+
+int future_fib(int nargs, char *args[]){
+  int fib = -1, i;
+
+    fib = atoi(args[2]);
+
+    if (fib > -1) {
+      int final_fib;
+      int future_flags = FUTURE_SHARED; // TODO - add appropriate future mode here
+
+      // create the array of future pointers
+      if ((fibfut = (future_t **)getmem(sizeof(future_t *) * (fib + 1)))
+          == (future_t **) SYSERR) {
+        printf("getmem failed\n");
+        return(SYSERR);
+      }
+
+      // get futures for the future array
+      for (i=0; i <= fib; i++) {
+        if((fibfut[i] = future_alloc(future_flags, sizeof(int), 1)) == (future_t *) SYSERR) {
+          printf("future_alloc failed\n");
+          return(SYSERR);
+        }
+      }
+
+      // spawn fib threads and get final value
+      for (i = 0; i <= fib; i++) {
+         resume(create((void *)ffib, 4096, 20, "ffib", 1, i));
+      }   
+
+      future_get(fibfut[fib], (char*) &final_fib);
+
+      for (i=0; i <= fib; i++) {
+        future_free(fibfut[i]);
+      }
+
+      freemem((char *)fibfut, sizeof(future_t *) * (fib + 1));
+      printf("Nth Fibonacci value for N=%d is %d\n", fib, final_fib);
+      return(OK);
+    }
+    return -1; //?? do we need this? missing parathensis
+  }
+
+    int future_free_test(int nargs, char *args[])
+    {
+    future_t *f_exclusive;
+    f_exclusive = future_alloc(FUTURE_EXCLUSIVE, sizeof(int), 1);
+    printf("future exclsive created\n");
+    future_free(f_exclusive);
+    printf("future exclsive freed\n");
+
+    future_t *f_shared;
+    f_shared = future_alloc(FUTURE_SHARED, sizeof(int), 1);
+    printf("future shared created\n");
+    future_free(f_shared);
+    printf("future shared freed\n");
+
+    return OK;
+    }
 
 void future_prodcons(int nargs, char *args[])
 {
@@ -116,7 +180,8 @@ shellcmd xsh_run(int nargs, char *args[]) {
       return OK;
     } 
 
-    if ((nargs == 2) && (strncmp(args[1], "hello", 5) != 0) && (strncmp(args[1], "prodcons", 8) != 0)) {
+    if ((nargs == 2) && (strncmp(args[1], "hello", 5) != 0) 
+      && (strncmp(args[1], "prodcons", 8) != 0) && (strncmp(args[1], "futest", 6) != 0)) {
       printf("hello\n"); 
       printf("list\n");
       printf("prodcons\n");
@@ -132,9 +197,28 @@ shellcmd xsh_run(int nargs, char *args[]) {
     nargs--;
 
     if(strncmp(args[0], "futest", 6) == 0) { 
+      if (strncmp(args[1], "-f", 2) == 0) {
+          int x =  atoi(args[2]);
+          if (x == 0) {
+              printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
+              return 0;
+          }
 
-      resume( create(future_prodcons, 1024, 20, "future_prodcons", 2, nargs, args));
-      return 0;
+          return future_fib(nargs, args);
+      }
+
+      if (strncmp(args[1], "--free", 5) == 0) {
+        future_free_test(nargs,args);
+        return 0;
+      }
+
+      if (strncmp(args[1], "-pc", 3) == 0) {
+         resume( create(future_prodcons, 1024, 20, "future_prodcons", 2, nargs, args));
+         return 0;
+      }
+
+      printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
+      return SYSERR;
     }
 
 

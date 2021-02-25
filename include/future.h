@@ -1,3 +1,4 @@
+
 #ifndef _FUTURE_H_
 #define _FUTURE_H_
 
@@ -18,6 +19,7 @@ typedef struct future_t {
   uint size;
   future_state_t state;
   future_mode_t mode;
+  qid16 get_queue; 
   pid32 pid;
 } future_t;
 

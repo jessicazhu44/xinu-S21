@@ -18,10 +18,13 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
   // struct future_t *future1;
   f->data = (char *) getmem(size);
   f->state = FUTURE_EMPTY; 
-  f->mode = mode;
   f->size = size;
   f->pid = -1;
+  f->mode = mode;
 
+  if (f->mode == FUTURE_SHARED) {
+  	f->get_queue = newqueue();
+  } 
   restore(mask);
   return f;
 }
@@ -34,8 +37,13 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 		if (f->pid > 0) {
 			kill(f->pid);
 		} 
-		return freemem((char*)f, f->size);
-	} 
+
+		int m = 1;
+		if (f->mode == FUTURE_SHARED) { 
+			m = delqueue(f->get_queue);
+		}
+		return freemem((char*)f, f->size) && m; 
+	} 												// is this how to free queue?
 
 	syscall future_get(future_t* f,  char* out) {
 		// returns SYSERR if another process is already waiting on the target future
@@ -45,27 +53,34 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 		}
 		// printf("hello\n");
 		if (f->state == FUTURE_EMPTY) {
-			// f->pid = 1;
-			// printf("hello1\n");  // prints 'consumed24'???how to keep future_get waiting till
-								// a set happens?
 			f->state = FUTURE_WAITING;
 			f->pid = getpid();
 			suspend(f->pid);
-			//out = f -> data;
 			memcpy(out, f->data, f->size);
 			return OK;
 		}
 
 		if (f->state == FUTURE_WAITING) { 
-			// f->pid = 1;
-			return SYSERR;
+			// all threads waiting on a future for value should be queued 
+			// in get_queue of the future
+			f->pid = getpid();
+			if (f->mode == FUTURE_SHARED) {
+				enqueue(f->pid, f->get_queue);
+				suspend(f->pid);
+				memcpy(out, f->data, f->size); 
+				return OK;
+			}
+			return SYSERR; 
 		}
 
 		if(f->state == FUTURE_READY) {
 			// when it is FUTURE_READY, the next future_get() call return set value 
 			// and the future becomes EMPTY
+			if (f->mode == FUTURE_SHARED) {
+				memcpy(out, f->data, f->size);
+				return OK;
+			}
 			memcpy(out, f->data, f->size); //return the set value
-			
 			f->state = FUTURE_EMPTY;
 			f->pid = -1;
 			return OK;
@@ -78,17 +93,24 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 		// call future_set on empty 'future' returns to state FUTURE_READY
 		if (f->state == FUTURE_EMPTY) {
 			f->state = FUTURE_READY;
-			f->data = in;
-			return OK;
+			memcpy(f->data,in, f->size);
+			// return OK;
 		} else if (f->state == FUTURE_READY) {
 			// subsequent future_set call on FUTURE_READY should return ERROR
 			return SYSERR;
 		} else if (f -> state == FUTURE_WAITING) {
-			f->data = in;
-			f->state = FUTURE_EMPTY;
-			resume(f->pid);
-			f->pid = -1;
-			return OK;
+			memcpy(f->data,in, f->size);
+			if (f->mode == FUTURE_SHARED) { 
+				while (!isempty(f->get_queue)) {
+					f->state = FUTURE_READY;
+					resume(dequeue(f->get_queue));
+				}
+			} else {
+				f->state = FUTURE_EMPTY;
+				resume(f->pid);
+				f->pid = -1;
+			}
+			// return OK;
 		}
 		return OK;
 	}
