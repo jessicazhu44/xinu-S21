@@ -197,6 +197,12 @@ shellcmd xsh_run(int nargs, char *args[]) {
     nargs--;
 
     if(strncmp(args[0], "futest", 6) == 0) { 
+
+      if (strncmp(args[1], "--free", 6) == 0) {
+        future_free_test(nargs,args);
+        return 0;
+      }
+
       if (strncmp(args[1], "-f", 2) == 0) {
           int x =  atoi(args[2]);
           if (x == 0) {
@@ -205,11 +211,6 @@ shellcmd xsh_run(int nargs, char *args[]) {
           }
 
           return future_fib(nargs, args);
-      }
-
-      if (strncmp(args[1], "--free", 5) == 0) {
-        future_free_test(nargs,args);
-        return 0;
       }
 
       if (strncmp(args[1], "-pc", 3) == 0) {
