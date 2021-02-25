@@ -204,11 +204,10 @@ shellcmd xsh_run(int nargs, char *args[]) {
       }
 
       if (strncmp(args[1], "-f", 2) == 0) {
-          if (strlen(args[1]) != 2) {
+          if (nargs != 2) {
               printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
-              return 0;
+              return 0;           
           }
-
           int x =  atoi(args[2]);
           if (x == 0) {
               printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
