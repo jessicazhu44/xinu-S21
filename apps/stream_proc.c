@@ -33,7 +33,7 @@ void stream_consumer(int32 id, stream_t *str) {
     signal(str->spaces);
 
 
-   if (time_count == output_time) {
+   if (time_count == output_time - 1) {
 
         time_count = 0;
         qarray = tscdf_quartiles(tc);
@@ -53,7 +53,7 @@ void stream_consumer(int32 id, stream_t *str) {
     }
   }
 
-  printf("stream_consumer existing.\n");
+  kprintf("stream_consumer exiting.\n");
   ptsend(pcport, getpid());
   return;
 }
@@ -64,10 +64,6 @@ int32 stream_proc(int nargs, char* args[]) {
   secs = clktime;
   msecs = clkticks;
 
-  if((pcport = ptcreate(num_streams)) == SYSERR) {
-      printf("ptcreate failed\n");
-      return(-1);
-  }
 
   // Parse arguments
     char usage[] = "Usage: run tscdf -s num_streams -w work_queue_depth -t time_window -o output_time\n";
@@ -114,6 +110,10 @@ int32 stream_proc(int nargs, char* args[]) {
             i -= 2;
         }
     }
+  if((pcport = ptcreate(num_streams)) == SYSERR) {
+      printf("ptcreate failed\n");
+      return(-1);
+  }
 
   // Create streams
   stream_t *s = (stream_t*) getmem(sizeof(stream_t)*num_streams);
