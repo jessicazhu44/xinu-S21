@@ -8,7 +8,10 @@
 #include <future.h>
 #include <future_prodcons.h>
 #include <future_fib.h>
+#include <stream.h>
 
+
+int32 stream_proc(int, char*);
 // variable for future_prodcons
 int32 head;
 int32 tail;
@@ -16,8 +19,6 @@ int32 arr_q[5];
 // definition of array, semaphores and indices 
 
 // variable for future_fib
-
-
 int future_fib(int nargs, char *args[]){
   int fib = -1, i;
 
@@ -177,6 +178,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
       printf("prodcons\n");
       printf("prodcons_bb\n");
       printf("futest\n");
+      printf("tscdf\n");
       return OK;
     } 
 
@@ -187,6 +189,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
       printf("prodcons\n");
       printf("prodcons_bb\n");
       printf("futest\n");
+      printf("tscdf\n");
       return OK;
     }
 
@@ -195,6 +198,11 @@ shellcmd xsh_run(int nargs, char *args[]) {
     */
     args++;
     nargs--;
+
+    if (strncmp(args[0], "tscdf", 5) == 0) { // time stamped cdf
+         resume( create(stream_proc, 1024, 20, "stream_proc", 2, nargs, args));
+         return 0;
+    }
 
     if(strncmp(args[0], "futest", 6) == 0) { 
 

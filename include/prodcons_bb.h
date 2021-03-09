@@ -5,7 +5,7 @@ sid32 r_sem;
 sid32 w_sem;
 sid32 mutex;
 // declare globally shared read and write indices
-extern int32 head;	// write
+extern int32 head;// write
 extern int32 tail; // read
 // function prototypes
 void consumer_bb(int id, int count);

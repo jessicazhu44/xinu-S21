@@ -13,7 +13,7 @@ void producer_bb(int id, int count) {
         wait(mutex);
         arr_q[head] = i;
         printf("name : producer_%d, write : %d\n", id, i);
-        head = (head + 1) % 5;
+        head = (head + 1) % 5; // head goes back to 0 once reaches end
         signal(mutex);
         signal(r_sem);
         
