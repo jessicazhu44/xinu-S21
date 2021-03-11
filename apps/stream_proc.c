@@ -53,7 +53,9 @@ void stream_consumer(int32 id, stream_t *str) {
       time_count++;
     }
   }
-  printf("stream_consumer existing.\n");
+
+  kprintf("stream_consumer exiting.\n");
+
   ptsend(pcport, getpid());
   // printf("final check point\n");
   return;
@@ -110,6 +112,10 @@ int32 stream_proc(int nargs, char* args[]) {
             i -= 2;
         }
     }
+  if((pcport = ptcreate(num_streams)) == SYSERR) {
+      printf("ptcreate failed\n");
+      return(-1);
+  }
 
   if((pcport = ptcreate(num_streams)) == SYSERR) {
       printf("ptcreate failed\n");
