@@ -16,7 +16,7 @@ void stream_consumer(int32 id, stream_t *str) {
   char *output = (char *)getmem(sizeof(char) * 64);
   int32 time_count = 0;
 
-  kprintf("stream_consumer id:%d (pid: %d)\n", id, getpid());
+  kprintf("stream_consumer id:%d (pid:%d)\n", id, getpid());
   while (1) {
     wait(str->items);
     wait(str->mutex);
@@ -73,7 +73,7 @@ int32 stream_proc(int nargs, char* args[]) {
     char c;
     char* ch;
     int i;
-    printf("nargs %d\n", nargs);
+
     if (nargs != 9)
     {
         printf("%s", usage);
