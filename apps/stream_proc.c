@@ -6,6 +6,7 @@
 // #include "tscdf_input.h"
 #include "tscdf.h"
 
+// issues with port
 uint pcport;
 
 void stream_consumer(int32 id, stream_t *str) {
@@ -33,7 +34,7 @@ void stream_consumer(int32 id, stream_t *str) {
     signal(str->spaces);
 
 
-   if (time_count == output_time) {
+   if (time_count == output_time - 1) {
 
         time_count = 0;
         qarray = tscdf_quartiles(tc);
@@ -52,9 +53,9 @@ void stream_consumer(int32 id, stream_t *str) {
       time_count++;
     }
   }
-
   printf("stream_consumer existing.\n");
   ptsend(pcport, getpid());
+  // printf("final check point\n");
   return;
 }
 
@@ -63,11 +64,6 @@ int32 stream_proc(int nargs, char* args[]) {
   ulong secs, msecs, time;
   secs = clktime;
   msecs = clkticks;
-
-  if((pcport = ptcreate(num_streams)) == SYSERR) {
-      printf("ptcreate failed\n");
-      return(-1);
-  }
 
   // Parse arguments
     char usage[] = "Usage: run tscdf -s num_streams -w work_queue_depth -t time_window -o output_time\n";
@@ -114,6 +110,11 @@ int32 stream_proc(int nargs, char* args[]) {
             i -= 2;
         }
     }
+
+  if((pcport = ptcreate(num_streams)) == SYSERR) {
+      printf("ptcreate failed\n");
+      return(-1);
+  }
 
   // Create streams
   stream_t *s = (stream_t*) getmem(sizeof(stream_t)*num_streams);
@@ -162,7 +163,7 @@ int32 stream_proc(int nargs, char* args[]) {
 
   	for(i=0; i < num_streams; i++) {
       uint32 pm;
-      pm = ptrecv(pcport);
+      pm = ptrecv(pcport); // message 
       printf("process %d exited\n", pm);
   	}
 
