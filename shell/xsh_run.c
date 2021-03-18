@@ -172,24 +172,36 @@ void prodcons_bb(int nargs, char *args[]) {
 
 shellcmd xsh_run(int nargs, char *args[]) {
 
+    char prompt[] = "hello\nlist\nprodcons\nprodcons_bb\nfutest\ntscdf\n";
+    char futest[] = "Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n";
+    char prodcons_bb[] = "Syntax: run prodcons_bb [# of producer processes] [# of consumer processes] [# of iterations the producer runs] [# of iterations the consumer runs]\n";
+
+
     if ((nargs == 1) ) {
+      printf("%s", prompt);
+      /*
       printf("hello\n"); 
       printf("list\n");
       printf("prodcons\n");
       printf("prodcons_bb\n");
       printf("futest\n");
       printf("tscdf\n");
+      */
       return OK;
     } 
 
     if ((nargs == 2) && (strncmp(args[1], "hello", 5) != 0) 
       && (strncmp(args[1], "prodcons", 8) != 0) && (strncmp(args[1], "futest", 6) != 0)) {
+      
+      printf("%s", prompt);
+      /*
       printf("hello\n"); 
       printf("list\n");
       printf("prodcons\n");
       printf("prodcons_bb\n");
       printf("futest\n");
       printf("tscdf\n");
+      */
       return OK;
     }
 
@@ -213,12 +225,14 @@ shellcmd xsh_run(int nargs, char *args[]) {
 
       if (strncmp(args[1], "-f", 2) == 0) {
           if (nargs != 3) {
-              printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
+              printf("%s", futest);
+              // printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
               return 0;           
           }
           int x =  atoi(args[2]);
           if (x == 0) {
-              printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
+              printf("%s", futest);
+              // printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
               return 0;
           }
 
@@ -230,7 +244,8 @@ shellcmd xsh_run(int nargs, char *args[]) {
          return 0;
       }
 
-      printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
+      printf("%s", futest);
+      //printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
       return SYSERR;
     }
 
@@ -247,7 +262,8 @@ shellcmd xsh_run(int nargs, char *args[]) {
 
     if(strncmp(args[0], "prodcons_bb", 10) == 0) {
       if (nargs != 5) {
-        printf("Syntax: run prodcons_bb [# of producer processes] [# of consumer processes] [# of iterations the producer runs] [# of iterations the consumer runs]\n");
+        printf("%s", prodcons_bb);
+        // printf("Syntax: run prodcons_bb [# of producer processes] [# of consumer processes] [# of iterations the producer runs] [# of iterations the consumer runs]\n");
         return 0;
       }
 
