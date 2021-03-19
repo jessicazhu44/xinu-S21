@@ -16,15 +16,31 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
   future_t *f = (future_t*) getmem(sizeof(future_t)); // this returns an address 'return (char *)(curr); ''
 
   // struct future_t *future1;
-  f->data = (char *) getmem(size);
+  f->data = (char *) getmem(size*nelem);
   f->state = FUTURE_EMPTY; 
   f->size = size;
   f->pid = -1;
   f->mode = mode;
-
+  f->get_queue = newqueue();
+  f->set_queue = newqueue();
+  f->max_elems = nelem;
+  f->count = 0;
+  f->head = 0; // index of slot at which the next element will be removed
+  f->tail = 0; //  index of next slot to which the next element will be added
+  /*
   if (f->mode == FUTURE_SHARED) {
   	f->get_queue = newqueue();
   } 
+
+  if (f->mode == FUTURE_QUEUE) {
+  	f->get_queue = newqueue();
+  	f->set_queue = newqueue();
+  	f->max_elems = nelem;
+  	f->count = 0;
+  	f->head = 0; // index of slot at which the next element will be removed
+  	f->tail = 0; //  index of next slot to which the next element will be added
+  }
+  */ 
   restore(mask);
   return f;
 }
@@ -48,6 +64,7 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 	syscall future_get(future_t* f,  char* out) {
 		// returns SYSERR if another process is already waiting on the target future
 		//printf("f.pid result: %s\n", f->pid);
+		// !char* headelemptr = f->data + (f->head * f->size);
 		if (f->pid > 0) {   
 			return SYSERR;
 		}
@@ -56,6 +73,7 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			f->state = FUTURE_WAITING;
 			f->pid = getpid();
 			suspend(f->pid);
+			// memcpy(out, headelemptr, f->size);
 			memcpy(out, f->data, f->size);
 			return OK;
 		}
@@ -67,9 +85,11 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			if (f->mode == FUTURE_SHARED) {
 				enqueue(f->pid, f->get_queue);
 				suspend(f->pid);
+				// memcpy(out, headelemptr, f->size);
 				memcpy(out, f->data, f->size); 
 				return OK;
 			}
+
 			return SYSERR; 
 		}
 
@@ -77,9 +97,11 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			// when it is FUTURE_READY, the next future_get() call return set value 
 			// and the future becomes EMPTY
 			if (f->mode == FUTURE_SHARED) {
+				// memcpy(out, headelemptr, f->size);
 				memcpy(out, f->data, f->size);
 				return OK;
 			}
+			// memcpy(out, headelemptr, f->size);
 			memcpy(out, f->data, f->size); //return the set value
 			f->state = FUTURE_EMPTY;
 			f->pid = -1;
@@ -90,28 +112,40 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 	}
 
 	syscall future_set(future_t* f, char* in) {
+		// !char* tailelemptr = f->data + (f->tail * f->size);
+		
 		// call future_set on empty 'future' returns to state FUTURE_READY
 		if (f->state == FUTURE_EMPTY) {
 			f->state = FUTURE_READY;
+			// memcpy(tailelemptr,in, f->size);
 			memcpy(f->data,in, f->size);
-			// return OK;
 		} else if (f->state == FUTURE_READY) {
 			// subsequent future_set call on FUTURE_READY should return ERROR
 			return SYSERR;
 		} else if (f -> state == FUTURE_WAITING) {
+			// memcpy(tailelemptr,in, f->size);
 			memcpy(f->data,in, f->size);
 			if (f->mode == FUTURE_SHARED) { 
 				while (!isempty(f->get_queue)) {
 					f->state = FUTURE_READY;
 					resume(dequeue(f->get_queue));
 				}
-			} else {
+			/*
+			else if (f->mode == FUTURE_QUEUE) {
+				if(f->max_elems == f->count) { // queue is full
+					enqueue(f->pid, f->set_queue);
+				} else {
+					memcpy(tailelemptr,in, f->size);
+					resume(dequeue(f->get_queue));
+				}*/
+			} 
+			 else { // FUTURE_EXCLUSIVE mode
 				f->state = FUTURE_EMPTY;
 				resume(f->pid);
 				f->pid = -1;
 			}
-			// return OK;
 		}
+
 		return OK;
 	}
 

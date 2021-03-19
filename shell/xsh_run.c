@@ -77,70 +77,102 @@ int future_fib(int nargs, char *args[]){
 
     return OK;
     }
+/*
+void future_prodcons_pcq(int nargs, char *args[])
+{
+    char futest_pcq[] = "Syntax: run futest [-pc [g ...] [s VALUE ...]] | [-pcq LENGTH [g ...] [s VALUE ...]] | [-f NUMBER] | [--free]\n";
+    if (nargs <= 2) {
+      printf("%s", futest_pcq);
+      return;
+      }
+??
+    print_sem = semcreate(1);
+    future_t* f_queue;
+    f_queue = future_alloc(FUTURE_QUEUE, sizeof(int), 1);
+      return;
+}
+*/
+
 
 void future_prodcons(int nargs, char *args[])
 {
     // argument handing: you should make sure arguments are either "g" or "s" or a number. 
     // -pc is the 2nd argument, when -pc is passed expected variable number of arguments
+    int i, j;
+    char futest_p[] = "Syntax: run futest [-pc [g ...] [s VALUE ...]] | [-pcq LENGTH [g ...] [s VALUE ...]] | [-f NUMBER] | [--free]\n";
+
+    // args: futest[0] -pcq[1] LENGTH[2]
     if (nargs <= 2) {
-      printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f]\n");
+      kprintf("%s", futest_p);
       return;
     }
 
     print_sem = semcreate(1);
-    future_t* f_exclusive;
-    f_exclusive = future_alloc(FUTURE_EXCLUSIVE, sizeof(int), 1);
+    future_t* f;
 
-    // First, try to iterate through the arguments and make sure they are all valid based on the requirements 
-    // (you may assume the argument after "s" there is always a number)
-    int i = 2;
-    while (i < nargs)
-    {
-        // write your code here to check the validity of arguments
-        if (strcmp(args[i], "s") == 0) {
-          //printf("wrong inputs from %s, num: %d\n", args[i], i);
-          int x = atoi(args[i+1]);
-          if (x == 0) {
-              printf("wrong inputs from s\n");
-              return;
-          }
-          i = i + 2;
-          continue;
-        } else if (strcmp(args[i], "g") == 0 ) {
-          // printf("this is %s, num: %d\n", args[i], i);
-          i++;
-          continue;
-        } else { 
-   		printf("Syntax: run futest [-pc [g ...] [sxsh $  VALUE ...]|-f]\n");
-   	}
-        return;
+    if(strncmp(args[1], "-pcq", 4) == 0) { 
+      int len = atoi(args[2]);
+      f = future_alloc(FUTURE_QUEUE, sizeof(int), len);
+      i = 3; // index for following args error check
+      j = 3;
     }
 
+    if(strncmp(args[1], "-pc", 3) == 0) { 
+      f = future_alloc(FUTURE_EXCLUSIVE, sizeof(int), 1);
+      i = 2;
+      j = 2;
+    }
+    // First, try to iterate through the arguments and make sure they are all valid based on the requirements 
+    // (you may assume the argument after "s" there is always a number)
+
+      while (i < nargs)
+      {
+          // write your code here to check the validity of arguments
+          if (strcmp(args[i], "s") == 0) {
+            //printf("wrong inputs from %s, num: %d\n", args[i], i);
+            int x = atoi(args[i+1]);
+            if (x == 0) {
+                printf("wrong inputs from s\n");
+                return;
+            }
+            i = i + 2;
+            continue;
+          } else if (strcmp(args[i], "g") == 0 ) {
+            // printf("this is %s, num: %d\n", args[i], i);
+            i++;
+            continue;
+          } else { 
+            kprintf("%s", futest_p);
+     		 // kprintf("Syntax: run futest [-pc [g ...] [sxsh $  VALUE ...]|-f]\n");
+     	}
+          return;
+      }
+
     int num_args = i;  // keeping number of args to create the array
-    i = 2; // reseting the index 
+    // use j // reseting the index 
     char* val  =  (char *) getmem(num_args); // initializing the array to keep the "s" numbers
 
     // Iterate again through the arguments and create the following processes based on the passed argument ("g" or "s VALUE")
 
-    while (i < nargs)
+    while (j < nargs)
     {
-      if (strcmp(args[i], "g") == 0){
+      if (strcmp(args[j], "g") == 0){
         char id[10];
-        sprintf(id, "fcons%d",i);
+        sprintf(id, "fcons%d",j);
         // printf("%s\n", args[i]);
-        resume(create(future_cons, 2048, 20, id, 1, f_exclusive));    
+        resume(create(future_cons, 2048, 20, id, 1, f));    
       }
-      if (strcmp(args[i], "s") == 0){
-        i++;
-        uint8 number = atoi(args[i]);
-        val[i] = number;
-        resume(create(future_prod, 2048, 20, "fprod1", 2, f_exclusive, &val[i]));
+      if (strcmp(args[j], "s") == 0){
+        j++;
+        uint8 number = atoi(args[j]);
+        val[j] = number;
+        resume(create(future_prod, 2048, 20, "fprod1", 2, f, &val[j]));
         sleepms(5);
       }
-      i++;
+      j++;
     }
     sleepms(100);
-    future_free(f_exclusive);
+    future_free(f);
 }
 
 
@@ -176,32 +208,14 @@ shellcmd xsh_run(int nargs, char *args[]) {
     char futest[] = "Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n";
     char prodcons_bb[] = "Syntax: run prodcons_bb [# of producer processes] [# of consumer processes] [# of iterations the producer runs] [# of iterations the consumer runs]\n";
 
-
     if ((nargs == 1) ) {
       printf("%s", prompt);
-      /*
-      printf("hello\n"); 
-      printf("list\n");
-      printf("prodcons\n");
-      printf("prodcons_bb\n");
-      printf("futest\n");
-      printf("tscdf\n");
-      */
       return OK;
     } 
 
     if ((nargs == 2) && (strncmp(args[1], "hello", 5) != 0) 
       && (strncmp(args[1], "prodcons", 8) != 0) && (strncmp(args[1], "futest", 6) != 0)) {
-      
       printf("%s", prompt);
-      /*
-      printf("hello\n"); 
-      printf("list\n");
-      printf("prodcons\n");
-      printf("prodcons_bb\n");
-      printf("futest\n");
-      printf("tscdf\n");
-      */
       return OK;
     }
 
@@ -210,6 +224,11 @@ shellcmd xsh_run(int nargs, char *args[]) {
     */
     args++;
     nargs--;
+
+    if (strncmp(args[0], "tscdf_fq", 8) == 0) { // time stamped cdf
+         // resume( create(stream_proc_futures, 1024, 20, "stream_proc_futures", 2, nargs, args));
+         return 0;
+    }    
 
     if (strncmp(args[0], "tscdf", 5) == 0) { // time stamped cdf
          resume( create(stream_proc, 1024, 20, "stream_proc", 2, nargs, args));
@@ -226,26 +245,24 @@ shellcmd xsh_run(int nargs, char *args[]) {
       if (strncmp(args[1], "-f", 2) == 0) {
           if (nargs != 3) {
               printf("%s", futest);
-              // printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
               return 0;           
           }
           int x =  atoi(args[2]);
           if (x == 0) {
               printf("%s", futest);
-              // printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
               return 0;
           }
 
           return future_fib(nargs, args);
       }
 
-      if (strncmp(args[1], "-pc", 3) == 0) {
+      // below works on both -pc and -pcq
+      if (strncmp(args[1], "-pc", 3) == 0 || strncmp(args[1], "-pcq", 4) == 0) { // args: futest -pc/-pcq x x x ...
          resume( create(future_prodcons, 1024, 20, "future_prodcons", 2, nargs, args));
          return 0;
       }
 
-      printf("%s", futest);
-      //printf("Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n");
+      kprintf("%s", futest);
       return SYSERR;
     }
 
