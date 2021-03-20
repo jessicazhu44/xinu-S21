@@ -64,90 +64,113 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 	syscall future_get(future_t* f,  char* out) {
 		// returns SYSERR if another process is already waiting on the target future
 		//printf("f.pid result: %s\n", f->pid);
-		// !char* headelemptr = f->data + (f->head * f->size);
-		if (f->pid > 0) {   
+		char* headelemptr = f->data + (f->head * f->size);
+		
+		if (f->pid > 0 && f->mode == FUTURE_EXCLUSIVE) {   
 			return SYSERR;
 		}
-		// printf("hello\n");
+		
 		if (f->state == FUTURE_EMPTY) {
 			f->state = FUTURE_WAITING;
 			f->pid = getpid();
+			enqueue(f->pid, f->get_queue);
 			suspend(f->pid);
-			// memcpy(out, headelemptr, f->size);
-			memcpy(out, f->data, f->size);
+			memcpy(out, headelemptr, f->size);
+			//kprintf("line 79, %d\n", *headelemptr);
+			f->count = f->count - 1; // or f->count = 0
+			f->head = (f->head + 1) % f->max_elems;
+
 			return OK;
 		}
 
-		if (f->state == FUTURE_WAITING) { 
-			// all threads waiting on a future for value should be queued 
-			// in get_queue of the future
-			f->pid = getpid();
-			if (f->mode == FUTURE_SHARED) {
-				enqueue(f->pid, f->get_queue);
-				suspend(f->pid);
-				// memcpy(out, headelemptr, f->size);
-				memcpy(out, f->data, f->size); 
-				return OK;
+		if (f->state == FUTURE_WAITING) {
+			
+			if(f->mode == FUTURE_EXCLUSIVE) {
+				return SYSERR;
 			}
-
-			return SYSERR; 
+			f->pid = getpid();
+			enqueue(f->pid, f->get_queue);
+			suspend(f->pid);
+			memcpy(out, headelemptr, f->size);
+			f->head = (f->head + 1) % f->max_elems; 
+			f->count = f->count - 1;
+			/*
+			if (f->count == 0) {
+				f->state = FUTURE_EMPTY;
+			}
+			*/
+			return OK;
 		}
 
 		if(f->state == FUTURE_READY) {
 			// when it is FUTURE_READY, the next future_get() call return set value 
 			// and the future becomes EMPTY
-			if (f->mode == FUTURE_SHARED) {
-				// memcpy(out, headelemptr, f->size);
-				memcpy(out, f->data, f->size);
-				return OK;
+			memcpy(out, headelemptr, f->size);
+			resume(dequeue(f->get_queue));
+			f->head = (f->head + 1) % f->max_elems;
+			f->count = f->count - 1;
+
+			if(f->mode == FUTURE_EXCLUSIVE) {
+				f->state = FUTURE_EMPTY;
+				f->pid = -1;
 			}
-			// memcpy(out, headelemptr, f->size);
-			memcpy(out, f->data, f->size); //return the set value
-			f->state = FUTURE_EMPTY;
-			f->pid = -1;
 			return OK;
 		}
-
 		return OK;
 	}
 
 	syscall future_set(future_t* f, char* in) {
-		// !char* tailelemptr = f->data + (f->tail * f->size);
-		
-		// call future_set on empty 'future' returns to state FUTURE_READY
+		char* tailelemptr = f->data + (f->tail * f->size); 
+
 		if (f->state == FUTURE_EMPTY) {
 			f->state = FUTURE_READY;
-			// memcpy(tailelemptr,in, f->size);
-			memcpy(f->data,in, f->size);
-		} else if (f->state == FUTURE_READY) {
-			// subsequent future_set call on FUTURE_READY should return ERROR
-			return SYSERR;
-		} else if (f -> state == FUTURE_WAITING) {
-			// memcpy(tailelemptr,in, f->size);
-			memcpy(f->data,in, f->size);
-			if (f->mode == FUTURE_SHARED) { 
-				while (!isempty(f->get_queue)) {
-					f->state = FUTURE_READY;
-					resume(dequeue(f->get_queue));
-				}
-			/*
-			else if (f->mode == FUTURE_QUEUE) {
+			memcpy(tailelemptr,in, f->size);
+			f->count = f->count+1;
+			return OK;			
+		}
+		
+		if (f->state == FUTURE_WAITING) {
+			if(f->mode == FUTURE_EXCLUSIVE) {
+				f->state = FUTURE_EMPTY;
+				f->count = f->count+1;
+				memcpy(tailelemptr,in, f->size);
+				resume(dequeue(f->get_queue));
+				f->pid = -1;				
+			}
+
+			if(f->mode == FUTURE_SHARED) {
+				f->state = FUTURE_READY;
+				resume(dequeue(f->get_queue));
+			}
+
+			if (f->mode == FUTURE_QUEUE) {
+				f->state = FUTURE_READY;
 				if(f->max_elems == f->count) { // queue is full
 					enqueue(f->pid, f->set_queue);
-				} else {
+					suspend(f->pid);
+				} else { // queue not full
 					memcpy(tailelemptr,in, f->size);
-					resume(dequeue(f->get_queue));
-				}*/
-			} 
-			 else { // FUTURE_EXCLUSIVE mode
-				f->state = FUTURE_EMPTY;
-				resume(f->pid);
-				f->pid = -1;
+					f->tail = (f->tail + 1) % f->max_elems;
+					f->count = f->count+1;
+					resume(dequeue(f->get_queue)); 
+				}
 			}
 		}
 
+		if(f->state == FUTURE_READY) {
+			if (f->mode == FUTURE_EXCLUSIVE || f->mode == FUTURE_SHARED) {
+				return SYSERR;
+			}
+			
+			if(f->max_elems == f->count) { // queue is full
+				enqueue(f->pid, f->set_queue);
+				suspend(f->pid);
+			} else { // queue not full
+				memcpy(tailelemptr,in, f->size);
+				f->tail = (f->tail + 1) % f->max_elems;
+				f->count = f->count+1;
+				resume(dequeue(f->get_queue)); 
+			}	
+		}
 		return OK;
 	}
-
-
-

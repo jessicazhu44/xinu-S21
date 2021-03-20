@@ -103,6 +103,7 @@ void future_prodcons(int nargs, char *args[])
 
     // args: futest[0] -pcq[1] LENGTH[2]
     if (nargs <= 2) {
+      //kprintf("line 106 future prodocons\n");
       kprintf("%s", futest_p);
       return;
     }
@@ -112,12 +113,11 @@ void future_prodcons(int nargs, char *args[])
 
     if(strncmp(args[1], "-pcq", 4) == 0) { 
       int len = atoi(args[2]);
+      // kprintf("length is %d\n", len);
       f = future_alloc(FUTURE_QUEUE, sizeof(int), len);
       i = 3; // index for following args error check
       j = 3;
-    }
-
-    if(strncmp(args[1], "-pc", 3) == 0) { 
+    } else if(strncmp(args[1], "-pc", 3) == 0) { 
       f = future_alloc(FUTURE_EXCLUSIVE, sizeof(int), 1);
       i = 2;
       j = 2;
@@ -142,6 +142,7 @@ void future_prodcons(int nargs, char *args[])
             i++;
             continue;
           } else { 
+            // kprintf("line 146 future prodocons\n");
             kprintf("%s", futest_p);
      		 // kprintf("Syntax: run futest [-pc [g ...] [sxsh $  VALUE ...]|-f]\n");
      	}
@@ -159,7 +160,7 @@ void future_prodcons(int nargs, char *args[])
       if (strcmp(args[j], "g") == 0){
         char id[10];
         sprintf(id, "fcons%d",j);
-        // printf("%s\n", args[i]);
+        // printf("xsh_run line 163\n");
         resume(create(future_cons, 2048, 20, id, 1, f));    
       }
       if (strcmp(args[j], "s") == 0){
