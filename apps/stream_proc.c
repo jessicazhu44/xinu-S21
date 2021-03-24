@@ -7,8 +7,10 @@
 #include "tscdf.h"
 
 // issues with port
-uint pcport;
 
+
+uint pcport;
+/*
 void stream_consumer(int32 id, stream_t *str) {
 
   int32* qarray;
@@ -58,11 +60,14 @@ void stream_consumer(int32 id, stream_t *str) {
 
   ptsend(pcport, getpid());
   // printf("final check point\n");
+
   return;
 }
+*/
 
 
 int32 stream_proc(int nargs, char* args[]) {
+  /*
   ulong secs, msecs, time;
   secs = clktime;
   msecs = clkticks;
@@ -177,6 +182,6 @@ int32 stream_proc(int nargs, char* args[]) {
 
   	time = (((clktime * 1000) + clkticks) - ((secs * 1000) + msecs));
   	printf("time in ms: %u\n", time);
-
+*/
   	return(0);
 }

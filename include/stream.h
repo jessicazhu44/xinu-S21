@@ -1,8 +1,12 @@
+#include <future.h>
+
 typedef struct data_element {
   int32 time;
   int32 value;
 } de;
 
+
+/*
 typedef struct stream {
   sid32 spaces;
   sid32 items;
@@ -11,7 +15,7 @@ typedef struct stream {
   int32 tail;
   struct data_element *queue;
 } stream_t;
-
+*/
 int num_streams;
 int work_queue_depth;
 int time_window;

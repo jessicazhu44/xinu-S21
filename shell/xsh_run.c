@@ -12,6 +12,7 @@
 
 
 int32 stream_proc(int, char*);
+int32 stream_proc_futures(int, char*);
 // variable for future_prodcons
 int32 head;
 int32 tail;
@@ -227,7 +228,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
     nargs--;
 
     if (strncmp(args[0], "tscdf_fq", 8) == 0) { // time stamped cdf
-         // resume( create(stream_proc_futures, 1024, 20, "stream_proc_futures", 2, nargs, args));
+         resume( create(stream_proc_futures, 1024, 20, "stream_proc_futures", 2, nargs, args));
          return 0;
     }    
 
