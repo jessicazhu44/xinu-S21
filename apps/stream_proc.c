@@ -19,7 +19,7 @@ void stream_consumer(int32 id, future_t *f) {
  
   de elem;  
 
-  kprintf("stream_consumer_future id:%d (pid:%d)\n", id, getpid());
+  kprintf("stream_consumer id:%d (pid:%d)\n", id, getpid());
   while (1) {
     //   Get future values
     if (future_get(f, (char*) &elem) < 0){
