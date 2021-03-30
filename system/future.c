@@ -46,11 +46,11 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			m = delqueue(f->get_queue);
 		}
 		return freemem((char*)f, f->size) && m; 
-	} 												// is this how to free queue?
+	} 												
 
 	syscall future_get(future_t* f,  char* out) {
 		// returns SYSERR if another process is already waiting on the target future
-		//printf("f.pid result: %s\n", f->pid);
+
 		intmask mask;
   		mask = disable();
 
@@ -70,8 +70,6 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			memcpy(out, headelemptr, f->size);
 			f->head = (f->head + 1) % f->max_elems;
 			f->count = f->count - 1; // or f->count = 0
-			// resume(dequeue(f->set_queue)); 
-			// kprintf("step 4\n");
 
 			restore(mask);
 			return OK;
@@ -85,12 +83,10 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			}
 			enqueue(f->pid, f->get_queue);
 			suspend(f->pid);
-			// f->pid = getpid();
 			headelemptr = f->data + (f->head * f->size);
 			memcpy(out, headelemptr, f->size);
 			f->head = (f->head + 1) % f->max_elems; 
 			f->count = f->count - 1;
-			// resume(dequeue(f->set_queue)); 
 
 			restore(mask);
 			return OK;
@@ -101,8 +97,7 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			// and the future becomes EMPTY
 			f->pid = getpid();
 			if(f->count <= 0) { // queue is empty
-				
-				// kprintf("step 5\n");
+
 				enqueue(f->pid, f->get_queue);
 				suspend(f->pid);
 				headelemptr = f->data + (f->head * f->size);
@@ -174,7 +169,6 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 					enqueue(f->pid, f->set_queue);
 					suspend(f->pid);
 				} else { // queue not full
-					// kprintf("step 3 or 6\n");
 					tailelemptr = f->data + (f->tail * f->size); 
 					memcpy(tailelemptr,in, f->size);
 					f->tail = (f->tail + 1) % f->max_elems;
@@ -196,7 +190,6 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 				enqueue(f->pid, f->set_queue);
 				suspend(f->pid);
 			} else { // queue not full
-				// kprintf("step 7\n");
 				tailelemptr = f->data + (f->tail * f->size); 
 				memcpy(tailelemptr,in, f->size);
 				f->tail = (f->tail + 1) % f->max_elems;

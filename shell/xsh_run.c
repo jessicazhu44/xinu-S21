@@ -114,7 +114,11 @@ void future_prodcons(int nargs, char *args[])
 
     if(strncmp(args[1], "-pcq", 4) == 0) { 
       int len = atoi(args[2]);
-      // kprintf("length is %d\n", len);
+      // kprintf("line 117: length is %d\n", len);
+      if (len == 0) {
+        kprintf("%s", futest_p);
+        return;
+      }
       f = future_alloc(FUTURE_QUEUE, sizeof(int), len);
       i = 3; // index for following args error check
       j = 3;
@@ -233,7 +237,8 @@ shellcmd xsh_run(int nargs, char *args[]) {
     }    
 
     if (strncmp(args[0], "tscdf", 5) == 0) { // time stamped cdf
-         resume( create(stream_proc, 1024, 20, "stream_proc", 2, nargs, args));
+         resume( create(stream_proc_futures, 1024, 20, "stream_proc_futures", 2, nargs, args));         
+         // resume( create(stream_proc, 1024, 20, "stream_proc", 2, nargs, args));
          return 0;
     }
 

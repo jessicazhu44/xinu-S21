@@ -6,8 +6,6 @@
 // #include "tscdf_input.h"
 #include "tscdf.h"
 
-// issues with port
-
 
 uint pcport;
 /*

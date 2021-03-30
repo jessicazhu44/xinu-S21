@@ -1,0 +1,6 @@
+target extended-remote :5560
+file xinu
+
+break main
+
+continue
