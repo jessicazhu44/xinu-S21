@@ -1,0 +1,6 @@
+target extended-remote :5560
+file xinu
+
+break stream_proc_futures.c:36 if id == 1
+
+continue

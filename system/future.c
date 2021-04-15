@@ -96,7 +96,6 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			// when it is FUTURE_READY, the next future_get() call return set value 
 			// and the future becomes EMPTY
 			f->pid = getpid();
-			// kprintf("line 99\n");
 			if(f->count <= 0) { // queue is empty
 
 				enqueue(f->pid, f->get_queue);
@@ -109,21 +108,18 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 				restore(mask);
 				return OK;
 			} 
-			// kprintf("step 6\n");
+			
 			headelemptr = f->data + (f->head * f->size);
 			memcpy(out, headelemptr, f->size);
 			if (resume(dequeue(f->get_queue)) == NULL){
-				// kprintf("line 115: step 3\n");
 				memcpy(out, headelemptr, f->size);
 			}
 			f->head = (f->head + 1) % f->max_elems;
 			f->count = f->count - 1;
 
 			if (f->count < f->max_elems) {
-				// kprintf("line 122: step 4\n");
 				resume(dequeue(f->set_queue)); 
 			}
-			// resume(dequeue(f->set_queue)); 
 
 			if(f->mode == FUTURE_EXCLUSIVE) {
 				f->state = FUTURE_EMPTY;
@@ -151,14 +147,13 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			f->count = f->count+1;
 			f->tail = (f->tail + 1) % f->max_elems;
 			resume(dequeue(f->get_queue));
-			// kprintf("line 151: step 1\n");
 
 			restore(mask);
 			return OK;			
 		}
 		
 		if (f->state == FUTURE_WAITING) {
-			// kprintf("line 161\n");
+
 			if(f->mode == FUTURE_EXCLUSIVE) {
 				f->state = FUTURE_EMPTY;
 				f->count = f->count+1;
@@ -192,7 +187,7 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 		}
 
 		if(f->state == FUTURE_READY) {
-			// kprintf("line 193: step 2\n");
+			
 			if (f->mode == FUTURE_EXCLUSIVE || f->mode == FUTURE_SHARED) {
 				restore(mask);
 				return SYSERR;
@@ -212,14 +207,11 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 			if(f->max_elems == f->count) { // queue is full
 				enqueue(f->pid, f->set_queue);
 				suspend(f->pid);
-				// kprintf("line 210: step 2\n");
 			}
-			// kprintf("line 212: this shouldnt appear after line 210\n");
 			tailelemptr = f->data + (f->tail * f->size); 
 			memcpy(tailelemptr,in, f->size);
 			f->tail = (f->tail + 1) % f->max_elems;
 			f->count = f->count+1;
-			// kprintf("line 219: step 5\n");
 			resume(dequeue(f->get_queue));	
 		}
 		restore(mask);

@@ -9,6 +9,7 @@
 #include <future_prodcons.h>
 #include <future_fib.h>
 #include <stream.h>
+#include <fs.h>
 
 
 int32 stream_proc(int, char*);
@@ -78,21 +79,6 @@ int future_fib(int nargs, char *args[]){
 
     return OK;
     }
-/*
-void future_prodcons_pcq(int nargs, char *args[])
-{
-    char futest_pcq[] = "Syntax: run futest [-pc [g ...] [s VALUE ...]] | [-pcq LENGTH [g ...] [s VALUE ...]] | [-f NUMBER] | [--free]\n";
-    if (nargs <= 2) {
-      printf("%s", futest_pcq);
-      return;
-      }
-??
-    print_sem = semcreate(1);
-    future_t* f_queue;
-    f_queue = future_alloc(FUTURE_QUEUE, sizeof(int), 1);
-      return;
-}
-*/
 
 
 void future_prodcons(int nargs, char *args[])
@@ -214,6 +200,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
     char futest[] = "Syntax: run futest [-pc [g ...] [s VALUE ...]|-f NUMBER][--free]\n";
     char prodcons_bb[] = "Syntax: run prodcons_bb [# of producer processes] [# of consumer processes] [# of iterations the producer runs] [# of iterations the consumer runs]\n";
 
+
     if ((nargs == 1) ) {
       printf("%s", prompt);
       return OK;
@@ -230,6 +217,13 @@ shellcmd xsh_run(int nargs, char *args[]) {
     */
     args++;
     nargs--;
+
+    if (strncmp(args[0], "fstest", 6) == 0) {
+      printf("hi");
+         resume( create(fstest, 4096, 20, "fstest", 2, nargs, args));
+         return 0;      
+    }
+
 
     if (strncmp(args[0], "tscdf_fq", 8) == 0) { // time stamped cdf
          resume( create(stream_proc_futures, 1024, 20, "stream_proc_futures", 2, nargs, args));
