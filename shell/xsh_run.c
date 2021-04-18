@@ -14,6 +14,7 @@
 
 int32 stream_proc(int, char*);
 int32 stream_proc_futures(int, char*);
+int fstest(int nargs, char *args[]);
 // variable for future_prodcons
 int32 head;
 int32 tail;

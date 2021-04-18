@@ -411,7 +411,7 @@ int fs_create(char *filename, int mode) {
         tmp_in.id = i;
         tmp_in.type = INODE_TYPE_FILE;
         tmp_in.nlink = 1;
-        tmp_in.device = 0;
+        tmp_in.device = 0; // what should be the device (expect type INT)
         tmp_in.size = sizeof(inode_t); //??? what should be the size?
         _fs_put_inode_by_num(dev0, i, &tmp_in);
 
@@ -434,8 +434,8 @@ int fs_seek(int fd, int offset) {
     // each file has 10 data blocks, each data block has 512 bytes;
   // an offset shouldn't go out of file's total bytes (5120 bytes)
   // Return SYSERR if the offset would go out of bounds
-  if (offset > (MDEV_BLOCK_SIZE * INODEDIRECTBLOCKS)) { // 512 * 10
-    printf("offset out of bound\n");
+  if (offset >= (MDEV_BLOCK_SIZE * INODEDIRECTBLOCKS)) { // 512 * 10
+    errormsg("offset out of bound\n");
     return SYSERR;
   }
 
@@ -452,15 +452,25 @@ int fs_read(int fd, void *buf, int nbytes) {
     return SYSERR;
   } 
 
-  // Read file contents stored in the data blocks, read from the first datablock
-  // Read memory from specific block and offset
-  int bl  = oft[fd].fileptr / INODEDIRECTBLOCKS; // <- divide by 10; calculate block index
-  int inn = oft[fd].fileptr % INODEDIRECTBLOCKS; // find which byte in a data block
-  // bs_bread(int dev, int block, int offset, void *buf, int len): 
-  if (bs_bread(dev0, oft[fd].in.blocks[bl], inn, buf, nbytes) < 0) {
-    errormsg("fs_read failed\n");
-    return SYSERR;
+  // Read file contents stored in the data blocks, always read from the first datablock
+  if (oft[fd].in.size < nbytes) {
+    nbytes = oft[fd].in.size;
   }
+  int bl  = nbytes / MDEV_BLOCK_SIZE; // <- divide by 512; calculate total number of blocks
+  int inn = nbytes % MDEV_BLOCK_SIZE; // index_number, find up to which byte in a data block
+  // bs_bread(int dev, int block, int offset, void *buf, int len): 
+  // ??? how to read: iterate through blocks; copy and paste block by block???
+
+  int n_blc = 0; 
+  while(n_blc < (bl-2)) {
+    // bs_bread(int dev, int block, int offset, void *buf, int len): 
+      bs_bread(dev0, oft[fd].in.blocks[n_blc], 0, buf+n_blc*MDEV_BLOCK_SIZE, MDEV_BLOCK_SIZE);
+      n_blc++;
+  }
+
+  // when n_blc = 9/ last block
+  bs_bread(dev0, oft[fd].in.blocks[n_blc], 0, buf+n_blc*MDEV_BLOCK_SIZE, inn);
+
   // Return the bytes read or SYSERR
   return nbytes;
 }
@@ -474,9 +484,54 @@ int fs_write(int fd, void *buf, int nbytes) {
     errormsg("file is not open\n");
     return SYSERR;
   } 
-  int bl  = oft[fd].fileptr / INODEDIRECTBLOCKS; // <- divide by 10; calculate block index
-  int inn = oft[fd].fileptr % INODEDIRECTBLOCKS; // find which byte in a data block
 
+  // calculate the amount of space left to store more data
+  // ensure it doesnt go out of bound
+  if((MDEV_BLOCK_SIZE * INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
+    nbytes = (MDEV_BLOCK_SIZE * INODEDIRECTBLOCKS) - oft[fd].fileptr;
+  }
+
+  /* |----==||======||==    |
+      we need to calculate how much left in the first available datablock
+      then store till the block in the end
+  */
+
+  int bl = oft[fd].fileptr / MDEV_BLOCK_SIZE; // <- divide by 512; calculate block index
+  int inn = oft[fd].fileptr % MDEV_BLOCK_SIZE; // find which byte in a data block
+
+  // if data can fit into the first block
+  if ((MDEV_BLOCK_SIZE - inn) >= nbytes) {
+    // int bs_bwrite(int bsdev, int block, int offset, void *buf, int len);
+    bs_bwrite(dev0, oft[fd].in.blocks[bl], inn, buf, nbytes);
+    oft[fd].in.size += nbytes;
+    oft[fd].fileptr += nbytes;    
+    return nbytes;
+  }
+
+  // if data can't fit into the first block
+  int n_bytes = nbytes;
+  // fill in the first block first
+  bs_bwrite(dev0, oft[fd].in.blocks[bl], inn, buf, (MDEV_BLOCK_SIZE - inn));
+  // fill other bytes into the following blocks
+  nbytes -= (MDEV_BLOCK_SIZE - inn);
+  bl++;
+  int i = 0;
+  while (nbytes > MDEV_BLOCK_SIZE) {
+    bs_bwrite(dev0, oft[fd].in.blocks[bl], 0, buf+(MDEV_BLOCK_SIZE - inn)+ MDEV_BLOCK_SIZE*i, MDEV_BLOCK_SIZE);
+    i++;
+    bl++;
+    nbytes -= MDEV_BLOCK_SIZE;
+  }
+
+  // left data store in the final block
+  bs_bwrite(dev0, oft[fd].in.blocks[bl], 0, buf+(MDEV_BLOCK_SIZE - inn)+ MDEV_BLOCK_SIZE*i, nbytes);
+
+  oft[fd].in.size += n_bytes;
+  oft[fd].fileptr += n_bytes;
+
+  return n_bytes;
+
+/*
   int byte_counter = nbytes;
 
   if ( (MDEV_BLOCK_SIZE - inn) <= nbytes) { 
@@ -508,6 +563,7 @@ int fs_write(int fd, void *buf, int nbytes) {
     oft[fd].fileptr = (nbytes - (MDEV_BLOCK_SIZE - inn)) % MDEV_BLOCK_SIZE;
    }
     return nbytes;
+    */
 }
 
 int fs_link(char *src_filename, char* dst_filename) {
@@ -577,13 +633,20 @@ int fs_link(char *src_filename, char* dst_filename) {
   return OK;
 }
 
+
+// ?? Both root directory and OFT has inode, when we remove a file using unlink,
+// do we need to update the inodes in both OFT and ROOT?
+
+// compile failed at autograder
+
 int fs_unlink(char *filename) {
   // Search filename in the root directory
-  int file_inode;
+  int file_inode, fd;
   int i = 0;
   while (i < DIRECTORY_SIZE) {
     if (strcmp(fsd.root_dir.entry[i].name, filename) == 0) {
         fsd.root_dir.entry[i].inode_num = file_inode;
+        fd = i;
         break;
     }
     i++;    
@@ -615,6 +678,12 @@ int fs_unlink(char *filename) {
     memset(fsd.root_dir.entry[i].name, 0, FILENAMELEN);
     _fs_put_inode_by_num(dev0, file_inode, &tmp_out);
     
+    //??? after removal, do we need to update inodes in both oft and root_directory?
+    //update inode info in OFT
+    oft[fd].in.nlink++;
+    // remove the entry in OFT
+
+
 
     // fs_print_inode(file_inode);
 

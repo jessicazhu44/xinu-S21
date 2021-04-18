@@ -169,9 +169,6 @@ int fstest_mkdev2() {
 
 #endif
 
-
-
-
 int fstest(int nargs, char *args[]) {
 
   /* Output help, if '--help' argument was supplied */
