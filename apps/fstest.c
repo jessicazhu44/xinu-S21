@@ -143,11 +143,33 @@ int fstest_mkdev() {
     ASSERT_PASS(fs_create("test", O_CREAT))
     ASSERT_PASS(fs_freefs(0))
     ASSERT_PASS(bs_freedev(0))
+
   }
 
   return OK;
 }
+
+
+int fstest_mkdev2() {
+
+
+    ASSERT_PASS(bs_mkdev(0, MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS))
+    ASSERT_PASS(fs_mkfs(0, DEFAULT_NUM_INODES))
+
+    ASSERT_PASS(fs_create("test1", INODE_TYPE_FILE))
+    ASSERT_PASS(fs_write(0, "abc", 1))
+    ASSERT_PASS(fs_read(0,"", 1))
+    // to test read and write 
+    ASSERT_PASS(fs_freefs(0))
+    ASSERT_PASS(bs_freedev(0))
+
+
+  return OK;
+}
+
 #endif
+
+
 
 
 int fstest(int nargs, char *args[]) {
@@ -173,9 +195,9 @@ int fstest(int nargs, char *args[]) {
 #ifdef FS
 
   printf("\n\n\n");
-  TEST(fstest_testbitmask)
-  TEST(fstest_mkdev)
-
+  // TEST(fstest_testbitmask)
+  // TEST(fstest_mkdev)
+  TEST(fstest_mkdev2)
 #else
   printf("No filesystem support\n");
 #endif

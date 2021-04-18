@@ -219,7 +219,7 @@ shellcmd xsh_run(int nargs, char *args[]) {
     nargs--;
 
     if (strncmp(args[0], "fstest", 6) == 0) {
-      printf("hi");
+
          resume( create(fstest, 4096, 20, "fstest", 2, nargs, args));
          return 0;      
     }

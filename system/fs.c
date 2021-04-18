@@ -68,7 +68,7 @@ int _fs_get_inode_by_num(int dev, int inode_number, inode_t *out) {
   inode_off = inn * sizeof(inode_t);
 
   bs_bread(dev0, bl, 0, &block_cache[0], fsd.blocksz);
-  memcpy(_fs_get_inode_by_num, &block_cache[inode_off], sizeof(inode_t));
+  memcpy(out, &block_cache[inode_off], sizeof(inode_t));
 
   return OK;
 
@@ -315,28 +315,30 @@ void fs_printfreemask(void) { // print block bitmask
  */
 int fs_open(char *filename, int flags) {
 
-  if (flags != O_RDONLY || flags != O_WRONLY || flags != O_RDWR) { 
+  if (flags != O_RDONLY && flags != O_WRONLY && flags != O_RDWR) { 
+    errormsg("wrong flags\n");
     return SYSERR;
   }
 
-  int i = 0;
-  int file_inode;
+  int i = 0; // i = fd
+  // int file_inode;
   while (i < DIRECTORY_SIZE) { // loop through root to find filename
       if(strcmp(fsd.root_dir.entry[i].name, filename) == 0) {
         // if filename match
-        file_inode = fsd.root_dir.entry[i].inode_num;
+        // file_inode = fsd.root_dir.entry[i].inode_num;
         break;
       }
       i++;
     } 
 
   if(i == DIRECTORY_SIZE) {
-    printf("file doesn't exist\n");
+    errormsg("file doesn't exist\n");
     return SYSERR;
   }
 
   // Return SYSERR if already open
-  if (oft[file_inode].state == FSTATE_OPEN) {
+  if (oft[i].state == FSTATE_OPEN) {
+    errormsg("file already open\n");
     return SYSERR;
   }
 
@@ -344,22 +346,23 @@ int fs_open(char *filename, int flags) {
   // (Only the inodes in the file table can be edited)
   inode_t tmp_out;
   // int _fs_get_inode_by_num(int dev, int inode_number, inode_t *out)
-  if(_fs_get_inode_by_num(dev0, file_inode, &tmp_out) <0) {
-    printf("get inode failed\n");
+  if(_fs_get_inode_by_num(dev0, i, &tmp_out) <0) {
+    errormsg("get inode failed\n");
     return SYSERR;
   } 
   // make an entry of that inode in the file table. 
-  oft[file_inode].state = FSTATE_OPEN;
-  oft[file_inode].de = &fsd.root_dir.entry[i];
-  oft[file_inode].in = tmp_out;
+  oft[i].state = FSTATE_OPEN;
+  oft[i].de = &fsd.root_dir.entry[i];
+  oft[i].in = tmp_out;
 
   //Return file descriptor on success
-  return file_inode;
+  return i;
 }
 
 int fs_close(int fd) {
   // Return SYSERR if already closed
   if (oft[fd].state == FSTATE_CLOSED) {
+    errormsg("file already closed\n");
     return SYSERR;
   }
   // Change the state of an open file to FSTATE_CLOSED in the file table
@@ -371,37 +374,60 @@ int fs_close(int fd) {
 int fs_create(char *filename, int mode) {
   // dont support directory
   if (mode != INODE_TYPE_FILE) {
+  // if (mode != O_CREAT) {
+    errormsg("Directory creation not supported\n");
     return SYSERR;
   }
   // When a new file or directory is created, the root directory is updated accordingly.
   // Return SYSERR if root directory is already full
   if (fsd.root_dir.numentries == DIRECTORY_SIZE) {
+    errormsg("Directory full\n");
     return SYSERR;
   }
 
   // Return SYSERR if the filename already exists
   for (int i = 0; i < DIRECTORY_SIZE; i++) {
     if (strcmp(fsd.root_dir.entry[i].name, filename) == 0) {
+      errormsg("Filename %s already exists\n", filename);
       return SYSERR;
     }
   }
 
   // to create and add a file
-  for(int i = 0; i < DIRECTORY_SIZE; i++) {
+  int i = 0;
+  while(i < DIRECTORY_SIZE) {  // ??? Can you check using "numentries==DIRECTORY_SIZE"
     // Determine next available inode number
     if (fsd.root_dir.entry[i].inode_num == EMPTY) {
         // Add inode to the file system and Open file
         fsd.root_dir.entry[i].inode_num = i; 
         // void *memcpy(void *dest, const void * src, size_t n)
         memcpy(fsd.root_dir.entry[i].name, filename,FILENAMELEN); //strcpy acts on value \0 or NULL
-        fs_open(filename, O_RDWR);
         fsd.root_dir.numentries++;
-        break;
+        // fs_print_inode(i);
+  
+        // update inode info
+        inode_t tmp_in;
+        _fs_get_inode_by_num(dev0, i, &tmp_in);
+        tmp_in.id = i;
+        tmp_in.type = INODE_TYPE_FILE;
+        tmp_in.nlink = 1;
+        tmp_in.device = 0;
+        tmp_in.size = sizeof(inode_t); //??? what should be the size?
+        _fs_put_inode_by_num(dev0, i, &tmp_in);
+
+        fs_open(filename, O_RDWR);
+        
+        return OK;
     }
-    printf("No empty slot in root file\n");
-    return SYSERR;
+    i++;
   }
-  return OK;
+
+  // if(i == DIRECTORY_SIZE) {
+    errormsg("No empty slot in root file\n");
+    return SYSERR;
+  // }
+
+  // return OK;
 }
 
 int fs_seek(int fd, int offset) {
@@ -422,7 +448,7 @@ int fs_seek(int fd, int offset) {
 int fs_read(int fd, void *buf, int nbytes) {
   // if file is not open, return SYSERR
   if (oft[fd].state != FSTATE_OPEN) {
-    printf("file is not open\n");
+    errormsg("file is not open\n");
     return SYSERR;
   } 
 
@@ -432,7 +458,7 @@ int fs_read(int fd, void *buf, int nbytes) {
   int inn = oft[fd].fileptr % INODEDIRECTBLOCKS; // find which byte in a data block
   // bs_bread(int dev, int block, int offset, void *buf, int len): 
   if (bs_bread(dev0, oft[fd].in.blocks[bl], inn, buf, nbytes) < 0) {
-    printf("fs_read failed\n");
+    errormsg("fs_read failed\n");
     return SYSERR;
   }
   // Return the bytes read or SYSERR
@@ -445,7 +471,7 @@ int fs_write(int fd, void *buf, int nbytes) {
   // Do not forget to update size and fileptr
   // Return the bytes written or SYSERR
   if (oft[fd].state != FSTATE_OPEN) {
-    printf("file is not open\n");
+    errormsg("file is not open\n");
     return SYSERR;
   } 
   int bl  = oft[fd].fileptr / INODEDIRECTBLOCKS; // <- divide by 10; calculate block index
@@ -456,7 +482,7 @@ int fs_write(int fd, void *buf, int nbytes) {
   if ( (MDEV_BLOCK_SIZE - inn) <= nbytes) { 
     // if enough space in one block to store written data
     if(bs_bwrite(dev0, oft[fd].in.blocks[bl], inn, buf, nbytes) < 0) {
-      printf("writing failed\n");
+      errormsg("writing failed\n");
       return SYSERR;
     }
     oft[fd].in.size += nbytes;
@@ -475,7 +501,7 @@ int fs_write(int fd, void *buf, int nbytes) {
       byte_counter -= MDEV_BLOCK_SIZE;
       } 
     if (bl == INODEDIRECTBLOCKS) {
-      printf("reach maximum number of blocks\n");
+      errormsg("reach maximum number of blocks\n");
       return SYSERR;
     }
     oft[fd].in.size += nbytes;
@@ -485,6 +511,33 @@ int fs_write(int fd, void *buf, int nbytes) {
 }
 
 int fs_link(char *src_filename, char* dst_filename) {
+  bool dup_dst = 0;
+  // bool src_exist = 0;
+  int src_inode = -1;
+
+  for (int i = 0; i < DIRECTORY_SIZE; i++) { 
+    if (strcmp(fsd.root_dir.entry[i].name, dst_filename) == 0) {
+        dup_dst = 1;
+    }
+
+    if (strcmp(fsd.root_dir.entry[i].name, src_filename) == 0) {
+        // src_exist = 1;
+      src_inode = fsd.root_dir.entry[i].inode_num;
+        
+    }
+  }
+
+  if (dup_dst) {
+      errormsg("No duplicate link names are allowed\n");
+      return SYSERR;    
+  }
+
+  if(src_inode < 0) {
+      errormsg("Source file doesn't exist\n");
+      return SYSERR;      
+  }
+
+/*
   // Search the src_filename in the root directory
   for (int i = 0; i < DIRECTORY_SIZE; i++) {
     if (strcmp(fsd.root_dir.entry[i].name, dst_filename) == 0) {
@@ -494,13 +547,15 @@ int fs_link(char *src_filename, char* dst_filename) {
     }
   }
   
-  int src_inode;
+  
   for (int i = 0; i < DIRECTORY_SIZE; i++) {
     if (strcmp(fsd.root_dir.entry[i].name, src_filename) == 0) {
         src_inode = i;
         break;
     }
   }
+*/
+
 
   for (int i = 0; i < DIRECTORY_SIZE; i++) {
     if (fsd.root_dir.entry[i].inode_num == EMPTY) {
@@ -508,7 +563,13 @@ int fs_link(char *src_filename, char* dst_filename) {
       // the 1st new entry with dst_filename as its filename
       fsd.root_dir.entry[i].inode_num = src_inode;
       memcpy(fsd.root_dir.entry[i].name, dst_filename,FILENAMELEN);
+      inode_t tmp_in;
+      _fs_get_inode_by_num(dev0, src_inode, &tmp_in);
+      tmp_in.nlink++;
+      _fs_put_inode_by_num(dev0, src_inode, &tmp_in);
+
       fsd.root_dir.numentries++;
+
       break;
     }
   }
@@ -528,18 +589,35 @@ int fs_unlink(char *filename) {
     i++;    
   }
 
+  if (i == DIRECTORY_SIZE) {
+    errormsg("no such file\n");
+    return SYSERR;
+  }
+
   inode_t tmp_out;
   // int _fs_get_inode_by_num(int dev, int inode_number, inode_t *out)
   if(_fs_get_inode_by_num(dev0, file_inode, &tmp_out) <0) {
-    printf("get inode failed\n");
+    errormsg("get inode failed\n");
     return SYSERR;
   } 
+
+
+  // printf("line 604: %s, %d\n",tmp_out.type, tmp_out.nlink );
 
   // If the nlinks of the respective inode is more than 1, 
   // just remove the entry in the root directory
   if (tmp_out.nlink > 1) {
+    //  _fs_get_inode_by_num(dev0, inode_num, &tmp_in);
+    // kprintf("line 613: %d\n", tmp_out.nlink);
+    tmp_out.nlink--; 
+
     fsd.root_dir.entry[i].inode_num = EMPTY;
     memset(fsd.root_dir.entry[i].name, 0, FILENAMELEN);
+    _fs_put_inode_by_num(dev0, file_inode, &tmp_out);
+    
+
+    // fs_print_inode(file_inode);
+
   }
 
   // If the nlinks of the inode is just 1, 
