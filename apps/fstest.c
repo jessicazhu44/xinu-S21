@@ -192,9 +192,9 @@ int fstest(int nargs, char *args[]) {
 #ifdef FS
 
   printf("\n\n\n");
-  // TEST(fstest_testbitmask)
-  // TEST(fstest_mkdev)
-  TEST(fstest_mkdev2)
+  TEST(fstest_testbitmask)
+  TEST(fstest_mkdev)
+  // TEST(fstest_mkdev2)
 #else
   printf("No filesystem support\n");
 #endif
