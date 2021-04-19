@@ -344,16 +344,21 @@ int fs_open(char *filename, int flags) {
 
   // Using _get_inode_by_num function, 
   // (Only the inodes in the file table can be edited)
-  inode_t tmp_out;
+  // inode_t tmp_out;
   // int _fs_get_inode_by_num(int dev, int inode_number, inode_t *out)
-  if(_fs_get_inode_by_num(dev0, i, &tmp_out) <0) {
-    errormsg("get inode failed\n");
-    return SYSERR;
-  } 
+  // if(_fs_get_inode_by_num(dev0, i, &tmp_out) <0) {
+  //  errormsg("get inode failed\n");
+  //  return SYSERR;
+  // } 
   // make an entry of that inode in the file table. 
+        // changes on OFT
   oft[i].state = FSTATE_OPEN;
   oft[i].de = &fsd.root_dir.entry[i];
-  oft[i].in = tmp_out;
+  oft[i].in.type = INODE_TYPE_FILE;
+  oft[i].in.nlink = 1;
+
+  // oft[i].de = &fsd.root_dir.entry[i];
+  // oft[i].in = tmp_out;
 
   //Return file descriptor on success
   return i;
@@ -373,8 +378,8 @@ int fs_close(int fd) {
 
 int fs_create(char *filename, int mode) {
   // dont support directory
-  if (mode != INODE_TYPE_FILE) {
-  // if (mode != O_CREAT) {
+  // if (mode != INODE_TYPE_FILE) {
+  if (mode != O_CREAT) {
     errormsg("Directory creation not supported\n");
     return SYSERR;
   }
@@ -394,7 +399,7 @@ int fs_create(char *filename, int mode) {
   }
 
   // to create and add a file
-  int i = 0;
+  int i = 0; //entry[i] = oft[i]
   while(i < DIRECTORY_SIZE) {  // ??? Can you check using "numentries==DIRECTORY_SIZE"
     // Determine next available inode number
     if (fsd.root_dir.entry[i].inode_num == EMPTY) {
@@ -405,19 +410,19 @@ int fs_create(char *filename, int mode) {
         fsd.root_dir.numentries++;
         // fs_print_inode(i);
   
-        // update inode info
+        // update inode info - changes directly on data blocks
         inode_t tmp_in;
         _fs_get_inode_by_num(dev0, i, &tmp_in);
         tmp_in.id = i;
         tmp_in.type = INODE_TYPE_FILE;
         tmp_in.nlink = 1;
-        tmp_in.device = 0; // what should be the device (expect type INT)
-        tmp_in.size = sizeof(inode_t); //??? what should be the size?
+        tmp_in.device = 0; // what should be the device (expect type INT)???
+        tmp_in.size = 0; 
         _fs_put_inode_by_num(dev0, i, &tmp_in);
 
         fs_open(filename, O_RDWR);
-        
-        return OK;
+        // Return file descriptor on success
+        return i;
     }
     i++;
   }

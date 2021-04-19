@@ -156,9 +156,30 @@ int fstest_mkdev2() {
     ASSERT_PASS(bs_mkdev(0, MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS))
     ASSERT_PASS(fs_mkfs(0, DEFAULT_NUM_INODES))
 
-    ASSERT_PASS(fs_create("test1", INODE_TYPE_FILE))
-    ASSERT_PASS(fs_write(0, "abc", 1))
-    ASSERT_PASS(fs_read(0,"", 1))
+
+int fd1, fd2, fd3, fd4,fd5, fd6, fd7, fd8,fd9, fd10, fd11, fd12;
+ASSERT_PASS(fs_create("file1", O_CREAT))
+ASSERT_PASS(fs_create("file2", O_CREAT))
+ASSERT_PASS(fd3 = fs_create("file3", O_CREAT))
+ASSERT_PASS(fs_create("file4", O_CREAT))
+ASSERT_FAIL(fs_create("file4", O_CREAT))
+ASSERT_PASS(fs_create("file5", O_CREAT))
+ASSERT_PASS(fs_create("file6", O_CREAT))
+ASSERT_PASS(fs_create("file7", O_CREAT))
+ASSERT_PASS(fs_create("file8", O_CREAT))
+ASSERT_PASS(fs_create("file9", O_CREAT))
+ASSERT_PASS(fs_create("file10", O_CREAT))
+ASSERT_PASS(fs_create("file11", O_CREAT))
+ASSERT_PASS(fs_create("file12", O_CREAT))
+ASSERT_PASS(fs_create("file13", O_CREAT))
+ASSERT_PASS(fs_create("file14", O_CREAT))
+ASSERT_PASS(fs_create("file15", O_CREAT))
+ASSERT_PASS(fs_create("file16", O_CREAT))
+ASSERT_FAIL(fs_create("file17", O_CREAT))
+
+
+
+
     // to test read and write 
     ASSERT_PASS(fs_freefs(0))
     ASSERT_PASS(bs_freedev(0))
@@ -192,9 +213,9 @@ int fstest(int nargs, char *args[]) {
 #ifdef FS
 
   printf("\n\n\n");
-  TEST(fstest_testbitmask)
-  TEST(fstest_mkdev)
-  // TEST(fstest_mkdev2)
+  //TEST(fstest_testbitmask)
+  //TEST(fstest_mkdev)
+  TEST(fstest_mkdev2)
 #else
   printf("No filesystem support\n");
 #endif
