@@ -458,7 +458,7 @@ int fs_seek(int fd, int offset) {
     return SYSERR;    
   }
 */
-  if (offset > oft[fd].in.size) { 
+  if (offset >= oft[fd].in.size) { 
     errormsg("offset out of bound\n");
     return SYSERR;
   }
@@ -688,7 +688,7 @@ int fs_unlink(char *filename) {
 
   if (i == DIRECTORY_SIZE) {
     errormsg("no such file\n");
-      //fs_print_dir();
+      // fs_print_dir();
     return SYSERR;
   }
 
@@ -762,7 +762,7 @@ int fs_unlink(char *filename) {
     fsd.root_dir.numentries--;
   }  
 */
-  // fs_print_dir();
+  //fs_print_dir();
   return OK;
 }
 
