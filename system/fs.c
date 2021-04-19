@@ -320,12 +320,12 @@ int fs_open(char *filename, int flags) {
     return SYSERR;
   }
 
-  int i = 0; // i = fd
-  // int file_inode;
+  int i = 0; 
+  int file_inode;// file_node = fd
   while (i < DIRECTORY_SIZE) { // loop through root to find filename
       if(strcmp(fsd.root_dir.entry[i].name, filename) == 0) {
         // if filename match
-        // file_inode = fsd.root_dir.entry[i].inode_num;
+        file_inode = fsd.root_dir.entry[i].inode_num;
         break;
       }
       i++;
@@ -337,7 +337,7 @@ int fs_open(char *filename, int flags) {
   }
 
   // Return SYSERR if already open
-  if (oft[i].state == FSTATE_OPEN) {
+  if (oft[file_inode].state == FSTATE_OPEN) {
     errormsg("file already open\n");
     return SYSERR;
   }
@@ -352,16 +352,16 @@ int fs_open(char *filename, int flags) {
   // } 
   // make an entry of that inode in the file table. 
         // changes on OFT
-  oft[i].state = FSTATE_OPEN;
-  oft[i].de = &fsd.root_dir.entry[i];
-  oft[i].in.type = INODE_TYPE_FILE;
-  oft[i].in.nlink = 1;
+  oft[file_inode].state = FSTATE_OPEN;
+  oft[file_inode].de = &fsd.root_dir.entry[i];
+  oft[file_inode].in.type = INODE_TYPE_FILE;
+  oft[file_inode].in.nlink = 1;
 
   // oft[i].de = &fsd.root_dir.entry[i];
   // oft[i].in = tmp_out;
 
   //Return file descriptor on success
-  return i;
+  return file_inode;
 }
 
 int fs_close(int fd) {
@@ -399,8 +399,8 @@ int fs_create(char *filename, int mode) {
   }
 
   // to create and add a file
-  int i = 0; //entry[i] = oft[i]
-  while(i < DIRECTORY_SIZE) {  // ??? Can you check using "numentries==DIRECTORY_SIZE"
+  int i = 0; //entry.inode_num = oft[i]
+  while(i < DIRECTORY_SIZE) {  
     // Determine next available inode number
     if (fsd.root_dir.entry[i].inode_num == EMPTY) {
         // Add inode to the file system and Open file
@@ -426,13 +426,7 @@ int fs_create(char *filename, int mode) {
     }
     i++;
   }
-
-  // if(i == DIRECTORY_SIZE) {
-    errormsg("No empty slot in root file\n");
-    return SYSERR;
-  // }
-
-  // return OK;
+  return i;
 }
 
 int fs_seek(int fd, int offset) {
@@ -572,26 +566,21 @@ int fs_write(int fd, void *buf, int nbytes) {
 }
 
 int fs_link(char *src_filename, char* dst_filename) {
-  bool dup_dst = 0;
   // bool src_exist = 0;
   int src_inode = -1;
 
   for (int i = 0; i < DIRECTORY_SIZE; i++) { 
     if (strcmp(fsd.root_dir.entry[i].name, dst_filename) == 0) {
-        dup_dst = 1;
+      errormsg("No duplicate link names are allowed\n");
+      return SYSERR;         
     }
 
     if (strcmp(fsd.root_dir.entry[i].name, src_filename) == 0) {
-        // src_exist = 1;
       src_inode = fsd.root_dir.entry[i].inode_num;
-        
+      break;
     }
   }
 
-  if (dup_dst) {
-      errormsg("No duplicate link names are allowed\n");
-      return SYSERR;    
-  }
 
   if(src_inode < 0) {
       errormsg("Source file doesn't exist\n");
@@ -624,11 +613,13 @@ int fs_link(char *src_filename, char* dst_filename) {
       // the 1st new entry with dst_filename as its filename
       fsd.root_dir.entry[i].inode_num = src_inode;
       memcpy(fsd.root_dir.entry[i].name, dst_filename,FILENAMELEN);
+
+      /*
       inode_t tmp_in;
       _fs_get_inode_by_num(dev0, src_inode, &tmp_in);
       tmp_in.nlink++;
       _fs_put_inode_by_num(dev0, src_inode, &tmp_in);
-
+      */
       fsd.root_dir.numentries++;
 
       break;
