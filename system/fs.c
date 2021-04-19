@@ -434,9 +434,9 @@ int fs_seek(int fd, int offset) {
     // each file has 10 data blocks, each data block has 512 bytes;
   // an offset shouldn't go out of file's total bytes (5120 bytes)
   // Return SYSERR if the offset would go out of bounds
-  if (offset > MDEV_BLOCK_SIZE) { // 512 
-    errormsg("offset out of bound\n");
-    return SYSERR;
+  if(oft[fd].state != FSTATE_OPEN) {
+    errormsg("file is not open\n");
+    return SYSERR;        
   }
 
   if(offset < 0) {
@@ -444,10 +444,11 @@ int fs_seek(int fd, int offset) {
     return SYSERR;    
   }
 
-  if(oft[fd].state != FSTATE_OPEN) {
-    errormsg("file is not open\n");
-    return SYSERR;        
+  if (offset > oft[fd].in.size) { 
+    errormsg("offset out of bound\n");
+    return SYSERR;
   }
+
   // set offset
   oft[fd].fileptr = offset;
   // Return OK on success
@@ -656,7 +657,6 @@ int fs_link(char *src_filename, char* dst_filename) {
 // ?? Both root directory and OFT has inode, when we remove a file using unlink,
 // do we need to update the inodes in both OFT and ROOT?
 
-// compile failed at autograder
 
 int fs_unlink(char *filename) {
   // Search filename in the root directory
