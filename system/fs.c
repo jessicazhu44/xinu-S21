@@ -447,7 +447,7 @@ int fs_seek(int fd, int offset) {
     // each file has 10 data blocks, each data block has 512 bytes;
   // an offset shouldn't go out of file's total bytes (5120 bytes)
   // Return SYSERR if the offset would go out of bounds
-  /*
+  
   if(oft[fd].state != FSTATE_OPEN) {
     errormsg("file is not open\n");
     return SYSERR;        
@@ -457,7 +457,7 @@ int fs_seek(int fd, int offset) {
     errormsg("negative offset not allowed\n");
     return SYSERR;    
   }
-*/
+
   if (offset >= oft[fd].in.size) { 
     errormsg("offset out of bound\n");
     return SYSERR;
