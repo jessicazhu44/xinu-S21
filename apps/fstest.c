@@ -157,8 +157,15 @@ int fstest_mkdev2() {
     ASSERT_PASS(fs_mkfs(0, DEFAULT_NUM_INODES))
 
 
-int fd1, fd2, fd3, fd4,fd5, fd6, fd7, fd8,fd9, fd10, fd11, fd12;
-ASSERT_PASS(fs_create("file1", O_CREAT))
+int fd1; //, fd2, fd3, fd4,fd5, fd6, fd7, fd8,fd9, fd10, fd11, fd12;
+ASSERT_PASS(fd1 = fs_create("file1", O_CREAT))
+ASSERT_PASS(fs_link("file1", "file2"))
+ASSERT_PASS(fs_link("file1", "file3"))
+
+ASSERT_PASS(fs_unlink("file2"))
+ASSERT_PASS(fs_unlink("file3"))
+
+/*
 ASSERT_PASS(fs_create("file2", O_CREAT))
 ASSERT_PASS(fd3 = fs_create("file3", O_CREAT))
 ASSERT_PASS(fs_create("file4", O_CREAT))
@@ -177,7 +184,7 @@ ASSERT_PASS(fs_create("file15", O_CREAT))
 ASSERT_PASS(fs_create("file16", O_CREAT))
 ASSERT_FAIL(fs_create("file17", O_CREAT))
 
-
+*/
 
 
     // to test read and write 

@@ -570,23 +570,21 @@ int fs_link(char *src_filename, char* dst_filename) {
   int src_inode = -1;
 
   for (int i = 0; i < DIRECTORY_SIZE; i++) { 
-    if (strcmp(fsd.root_dir.entry[i].name, dst_filename) == 0) {
+    if (strcmp(fsd.root_dir.entry[i].name, dst_filename) == 0 ) {
       errormsg("No duplicate link names are allowed\n");
       return SYSERR;         
     }
 
     if (strcmp(fsd.root_dir.entry[i].name, src_filename) == 0) {
       src_inode = fsd.root_dir.entry[i].inode_num;
-      break;
     }
   }
-
 
   if(src_inode < 0) {
       errormsg("Source file doesn't exist\n");
       return SYSERR;      
   }
-
+     
 /*
   // Search the src_filename in the root directory
   for (int i = 0; i < DIRECTORY_SIZE; i++) {
@@ -614,6 +612,9 @@ int fs_link(char *src_filename, char* dst_filename) {
       fsd.root_dir.entry[i].inode_num = src_inode;
       memcpy(fsd.root_dir.entry[i].name, dst_filename,FILENAMELEN);
 
+      // update inode in oft
+      oft[src_inode].in.nlink++;
+
       /*
       inode_t tmp_in;
       _fs_get_inode_by_num(dev0, src_inode, &tmp_in);
@@ -637,12 +638,12 @@ int fs_link(char *src_filename, char* dst_filename) {
 
 int fs_unlink(char *filename) {
   // Search filename in the root directory
-  int file_inode, fd;
+  int file_inode;
   int i = 0;
   while (i < DIRECTORY_SIZE) {
     if (strcmp(fsd.root_dir.entry[i].name, filename) == 0) {
         fsd.root_dir.entry[i].inode_num = file_inode;
-        fd = i;
+        // fd = i;
         break;
     }
     i++;    
@@ -653,6 +654,28 @@ int fs_unlink(char *filename) {
     return SYSERR;
   }
 
+  // If the nlinks of the respective inode is more than 1, 
+  // just remove the entry in the root directory
+  if(oft[file_inode].in.nlink > 1) {
+    fsd.root_dir.entry[i].inode_num = EMPTY;
+    memcpy(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
+    fsd.root_dir.numentries--;
+  }
+
+  // If the nlinks of the inode is just 1, 
+  // then delete the respective inode along with its data blocks as well
+  if(oft[file_inode].in.nlink == 1) {
+    fsd.root_dir.entry[i].inode_num = EMPTY;
+    memcpy(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
+    fsd.root_dir.numentries--;
+
+    inode_t tmp_in; 
+    _fs_put_inode_by_num(dev0, file_inode, &tmp_in);
+  }
+
+
+
+/*
   inode_t tmp_out;
   // int _fs_get_inode_by_num(int dev, int inode_number, inode_t *out)
   if(_fs_get_inode_by_num(dev0, file_inode, &tmp_out) <0) {
@@ -695,7 +718,7 @@ int fs_unlink(char *filename) {
     _fs_put_inode_by_num(dev0, file_inode, &tmp_in);
     fsd.root_dir.numentries--;
   }  
-
+*/
   return OK;
 }
 
