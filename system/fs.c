@@ -438,6 +438,15 @@ int fs_seek(int fd, int offset) {
     return SYSERR;
   }
 
+  if(offset < 0) {
+    errormsg("negative offset not allowed\n");
+    return SYSERR;    
+  }
+
+  if(oft[fd] != FSTATE_OPEN) {
+    errormsg("file is not open\n");
+    return SYSERR;        
+  }
   // set offset
   oft[fd].fileptr = offset;
   // Return OK on success
