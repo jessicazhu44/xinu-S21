@@ -433,7 +433,7 @@ int fs_seek(int fd, int offset) {
     // each file has 10 data blocks, each data block has 512 bytes;
   // an offset shouldn't go out of file's total bytes (5120 bytes)
   // Return SYSERR if the offset would go out of bounds
-  if (offset >= (MDEV_BLOCK_SIZE * INODEDIRECTBLOCKS)) { // 512 * 10
+  if (offset > (MDEV_BLOCK_SIZE * INODEDIRECTBLOCKS)) { // 512 * 10
     errormsg("offset out of bound\n");
     return SYSERR;
   }
@@ -622,12 +622,13 @@ int fs_link(char *src_filename, char* dst_filename) {
       _fs_put_inode_by_num(dev0, src_inode, &tmp_in);
       */
       fsd.root_dir.numentries++;
-
-      break;
+      return OK;
     }
   }
 
-  return OK;
+    errormsg("no space for links\n");
+    return SYSERR;
+
 }
 
 
@@ -670,6 +671,10 @@ int fs_unlink(char *filename) {
     fsd.root_dir.numentries--;
 
     inode_t tmp_in; 
+    tmp_in.id = EMPTY;
+    tmp_in.nlink = 0;
+    tmp_in.device = 0;
+    tmp_in.size = 0;
     _fs_put_inode_by_num(dev0, file_inode, &tmp_in);
   }
 
