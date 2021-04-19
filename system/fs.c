@@ -658,7 +658,7 @@ int fs_link(char *src_filename, char* dst_filename) {
       _fs_put_inode_by_num(dev0, src_inode, &tmp_in);
       
       fsd.root_dir.numentries++;
-        fs_print_dir();
+        //fs_print_dir();
       return OK;
     }
   }
@@ -688,7 +688,7 @@ int fs_unlink(char *filename) {
 
   if (i == DIRECTORY_SIZE) {
     errormsg("no such file\n");
-      fs_print_dir();
+      //fs_print_dir();
     return SYSERR;
   }
 
