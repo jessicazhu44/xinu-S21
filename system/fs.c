@@ -443,7 +443,7 @@ int fs_seek(int fd, int offset) {
     return SYSERR;    
   }
 
-  if(oft[fd] != FSTATE_OPEN) {
+  if(oft[fd].state != FSTATE_OPEN) {
     errormsg("file is not open\n");
     return SYSERR;        
   }
