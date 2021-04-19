@@ -356,7 +356,7 @@ int fs_open(char *filename, int flags) {
   oft[file_inode].de = &fsd.root_dir.entry[i];
   oft[file_inode].in.type = INODE_TYPE_FILE;
   oft[file_inode].in.nlink = 1;
-
+  oft[file_inode].flag = flags;
   // oft[i].de = &fsd.root_dir.entry[i];
   // oft[i].in = tmp_out;
 
@@ -451,6 +451,11 @@ int fs_read(int fd, void *buf, int nbytes) {
     return SYSERR;
   } 
 
+  if (oft[fd].flag == 1) { // write only
+    errormsg("permission denied\n");
+    return SYSERR;
+  }
+
   // Read file contents stored in the data blocks, always read from the first datablock
   if (oft[fd].in.size < nbytes) {
     nbytes = oft[fd].in.size;
@@ -479,10 +484,16 @@ int fs_write(int fd, void *buf, int nbytes) {
   // Allocate new blocks if needed (do not exceed the maximum limit)
   // Do not forget to update size and fileptr
   // Return the bytes written or SYSERR
+
   if (oft[fd].state != FSTATE_OPEN) {
     errormsg("file is not open\n");
     return SYSERR;
   } 
+
+  if (oft[fd].flag == 0) { // read only
+    errormsg("permission denied\n");
+    return SYSERR;
+  }
 
   // calculate the amount of space left to store more data
   // ensure it doesnt go out of bound
@@ -612,15 +623,15 @@ int fs_link(char *src_filename, char* dst_filename) {
       fsd.root_dir.entry[i].inode_num = src_inode;
       memcpy(fsd.root_dir.entry[i].name, dst_filename,FILENAMELEN);
 
+/*
       // update inode in oft
       oft[src_inode].in.nlink++;
-
-      /*
+*/      
       inode_t tmp_in;
       _fs_get_inode_by_num(dev0, src_inode, &tmp_in);
       tmp_in.nlink++;
       _fs_put_inode_by_num(dev0, src_inode, &tmp_in);
-      */
+      
       fsd.root_dir.numentries++;
       return OK;
     }
@@ -655,29 +666,30 @@ int fs_unlink(char *filename) {
     return SYSERR;
   }
 
+  inode_t tmp_out;
+  _fs_get_inode_by_num(dev0, file_inode, &tmp_out); 
+
   // If the nlinks of the respective inode is more than 1, 
   // just remove the entry in the root directory
-  if(oft[file_inode].in.nlink > 1) {
+  if(tmp_out.nlink > 1) {
     fsd.root_dir.entry[i].inode_num = EMPTY;
     memcpy(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
+    tmp_out.nlink--;
     fsd.root_dir.numentries--;
   }
 
   // If the nlinks of the inode is just 1, 
   // then delete the respective inode along with its data blocks as well
-  if(oft[file_inode].in.nlink == 1) {
+  if(tmp_out.nlink == 1) {
     fsd.root_dir.entry[i].inode_num = EMPTY;
     memcpy(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
     fsd.root_dir.numentries--;
 
-    inode_t tmp_in; 
-    tmp_in.id = EMPTY;
-    tmp_in.nlink = 0;
-    tmp_in.device = 0;
-    tmp_in.size = 0;
-    _fs_put_inode_by_num(dev0, file_inode, &tmp_in);
+    tmp_out.id = EMPTY;
+    tmp_out.nlink = 0;
+    memset(tmp_out.blocks, 0, INODEBLOCKS);
   }
-
+  _fs_put_inode_by_num(dev0, file_inode, &tmp_out);
 
 
 /*

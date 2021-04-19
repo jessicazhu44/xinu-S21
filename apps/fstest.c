@@ -157,34 +157,24 @@ int fstest_mkdev2() {
     ASSERT_PASS(fs_mkfs(0, DEFAULT_NUM_INODES))
 
 
-int fd1; //, fd2, fd3, fd4,fd5, fd6, fd7, fd8,fd9, fd10, fd11, fd12;
-ASSERT_PASS(fd1 = fs_create("file1", O_CREAT))
-ASSERT_PASS(fs_link("file1", "file2"))
-ASSERT_PASS(fs_link("file1", "file3"))
+char *buf;
+int len = 6000;
+int fd;
+int i;
 
-ASSERT_PASS(fs_unlink("file2"))
-ASSERT_PASS(fs_unlink("file3"))
+buf = getmem(sizeof(char) * len);
 
-/*
-ASSERT_PASS(fs_create("file2", O_CREAT))
-ASSERT_PASS(fd3 = fs_create("file3", O_CREAT))
-ASSERT_PASS(fs_create("file4", O_CREAT))
-ASSERT_FAIL(fs_create("file4", O_CREAT))
-ASSERT_PASS(fs_create("file5", O_CREAT))
-ASSERT_PASS(fs_create("file6", O_CREAT))
-ASSERT_PASS(fs_create("file7", O_CREAT))
-ASSERT_PASS(fs_create("file8", O_CREAT))
-ASSERT_PASS(fs_create("file9", O_CREAT))
-ASSERT_PASS(fs_create("file10", O_CREAT))
-ASSERT_PASS(fs_create("file11", O_CREAT))
-ASSERT_PASS(fs_create("file12", O_CREAT))
-ASSERT_PASS(fs_create("file13", O_CREAT))
-ASSERT_PASS(fs_create("file14", O_CREAT))
-ASSERT_PASS(fs_create("file15", O_CREAT))
-ASSERT_PASS(fs_create("file16", O_CREAT))
-ASSERT_FAIL(fs_create("file17", O_CREAT))
+for (i = 0; i < len; i++) {
+  buf[i] = (char) i;
+}
 
-*/
+ASSERT_PASS(fd = fs_create("file", O_CREAT))
+
+ASSERT_TRUE(fs_write(fd, buf, len) == 5120)
+ASSERT_FAIL(fs_seek(fd, 6000))
+ASSERT_TRUE(fs_read(fd, buf, len) == 5120)
+
+freemem(buf, sizeof(char) * len);
 
 
     // to test read and write 
