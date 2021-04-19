@@ -354,6 +354,7 @@ int fs_open(char *filename, int flags) {
         // changes on OFT
   oft[file_inode].state = FSTATE_OPEN;
   oft[file_inode].de = &fsd.root_dir.entry[i];
+  oft[file_inode].in.id = file_inode;
   oft[file_inode].in.type = INODE_TYPE_FILE;
   oft[file_inode].in.nlink = 1;
   oft[file_inode].flag = flags;
@@ -433,7 +434,7 @@ int fs_seek(int fd, int offset) {
     // each file has 10 data blocks, each data block has 512 bytes;
   // an offset shouldn't go out of file's total bytes (5120 bytes)
   // Return SYSERR if the offset would go out of bounds
-  if (offset > (MDEV_BLOCK_SIZE * INODEDIRECTBLOCKS)) { // 512 * 10
+  if (offset > MDEV_BLOCK_SIZE) { // 512 
     errormsg("offset out of bound\n");
     return SYSERR;
   }
