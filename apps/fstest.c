@@ -159,9 +159,11 @@ int fstest_mkdev2() {
     int fd;
     ASSERT_PASS(fd = fs_create("file1", O_CREAT))
     ASSERT_PASS(fs_link("file1", "file2"))
-ASSERT_PASS(fs_unlink("file2"))
+    ASSERT_PASS(fs_link("file2", "file3"))
+    ASSERT_PASS(fs_unlink("file2"))
 // 
     ASSERT_FAIL(fs_unlink("file2"))
+    ASSERT_PASS(fs_unlink("file1"))
     // to test read and write 
     ASSERT_PASS(fs_freefs(0))
     ASSERT_PASS(bs_freedev(0))

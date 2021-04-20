@@ -422,6 +422,7 @@ int fs_create(char *filename, int mode) {
         // void *memcpy(void *dest, const void * src, size_t n)
         memcpy(fsd.root_dir.entry[i].name, filename,FILENAMELEN); //strcpy acts on value \0 or NULL
         fsd.root_dir.numentries++;
+        fsd.inodes_used++;
         // fs_print_inode(i);
   
         // update inode info - changes directly on data blocks
@@ -430,7 +431,7 @@ int fs_create(char *filename, int mode) {
         tmp_in.id = i;
         tmp_in.type = INODE_TYPE_FILE;
         tmp_in.nlink = 1;
-        tmp_in.device = 0; // what should be the device (expect type INT)???
+        tmp_in.device = 0; 
         tmp_in.size = 0; 
         _fs_put_inode_by_num(dev0, i, &tmp_in);
 
@@ -658,6 +659,7 @@ int fs_link(char *src_filename, char* dst_filename) {
       _fs_put_inode_by_num(dev0, src_inode, &tmp_in);
       
       fsd.root_dir.numentries++;
+      fsd.inodes_used++;
         //fs_print_dir();
       return OK;
     }
@@ -679,8 +681,11 @@ int fs_unlink(char *filename) {
   int i = 0;
   while (i < DIRECTORY_SIZE) {
     if (strcmp(fsd.root_dir.entry[i].name, filename) == 0) {
-        fsd.root_dir.entry[i].inode_num = file_inode;
-        // fd = i;
+        file_inode = fsd.root_dir.entry[i].inode_num;
+        fsd.root_dir.entry[i].inode_num = EMPTY;
+        memset(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
+        fsd.root_dir.numentries--;
+        fsd.inodes_used--;
         break;
     }
     i++;    
@@ -694,14 +699,58 @@ int fs_unlink(char *filename) {
 
   inode_t tmp_out;
   _fs_get_inode_by_num(dev0, file_inode, &tmp_out); 
+  tmp_out.nlink--;
+
+  if(tmp_out.nlink == 0) {
+    // remove the entry from oft 
+    // empty the data blocks of the file using fs_clearmaskbit
+    // If the nlinks of the inode is just 1, 
+    // then delete the respective inode along with its data blocks as well
+    oft[file_inode].state = 0;
+    oft[i].fileptr   = 0;
+    oft[i].in.type   = 0;
+    oft[i].in.nlink  = 0;
+    oft[i].in.device = 0;
+    oft[i].in.size   = 0;
+    memset(oft[i].in.blocks, 0, INODEBLOCKS);
+    oft[i].flag      = 0;
+
+    for(int i = 0; i < INODEDIRECTBLOCKS; i++) {
+      fs_clearmaskbit(tmp_out.blocks[i]);
+    }
+  }
+
+  _fs_put_inode_by_num(dev0, file_inode, &tmp_out);
+
+
+/*
+  if(tmp_out.nlink == 0) {
+      // If the nlinks of the respective inode left is 0, 
+  // just remove the entry in the root directory
+    fsd.root_dir.entry[i].inode_num = EMPTY;
+    memset(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
+
+    oft[file_inode]
+  }
+
+    if(tmp_out.nlink > 0) {
+    fsd.root_dir.entry[i].inode_num = EMPTY;
+    memset(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
+    fsd.root_dir.numentries--;
+
+    tmp_out.id = EMPTY;
+    tmp_out.nlink = 0;
+    memset(tmp_out.blocks, 0, INODEBLOCKS);
+  }
+
 
   // If the nlinks of the respective inode is more than 1, 
   // just remove the entry in the root directory
   if(tmp_out.nlink > 1) {
     fsd.root_dir.entry[i].inode_num = EMPTY;
     memset(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
-    tmp_out.nlink--;
-    fsd.root_dir.numentries--;
+    
+    
   }
 
   // If the nlinks of the inode is just 1, 
@@ -715,10 +764,7 @@ int fs_unlink(char *filename) {
     tmp_out.nlink = 0;
     memset(tmp_out.blocks, 0, INODEBLOCKS);
   }
-  _fs_put_inode_by_num(dev0, file_inode, &tmp_out);
-
-
-/*
+  
   inode_t tmp_out;
   // int _fs_get_inode_by_num(int dev, int inode_number, inode_t *out)
   if(_fs_get_inode_by_num(dev0, file_inode, &tmp_out) <0) {
