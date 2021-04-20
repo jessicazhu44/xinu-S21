@@ -482,24 +482,41 @@ int fs_read(int fd, void *buf, int nbytes) {
     return SYSERR;
   }
 
-  // Read file contents stored in the data blocks, always read from the first datablock
-  if (oft[fd].in.size < nbytes) {
-    nbytes = oft[fd].in.size;
-  }
-  int bl  = nbytes / MDEV_BLOCK_SIZE; // <- divide by 512; calculate total number of blocks
-  int inn = nbytes % MDEV_BLOCK_SIZE; // index_number, find up to which byte in a data block
+  // Read file contents stored in the data blocks, 
+  // always read starting from fileptr
+
+  //?? Do i need to consider oft[fd].in.size??
+
+  int bl  = oft[fd].fileptr / MDEV_BLOCK_SIZE; // <- divide by 512;calculate from which block to start
+  int inn = oft[fd].fileptr % MDEV_BLOCK_SIZE;  // find offset
+
+  // int _fs_fileblock_to_diskblock(int dev, int fd, int fileblock)
+  // ? _fs_fileblock_to_diskblock(0, fd, bl);
+
   // bs_bread(int dev, int block, int offset, void *buf, int len): 
   // ??? how to read: iterate through blocks; copy and paste block by block???
+  // consider file.size??
 
-  int n_blc = 0; 
-  while(n_blc < (bl-2)) {
-    // bs_bread(int dev, int block, int offset, void *buf, int len): 
-      bs_bread(dev0, oft[fd].in.blocks[n_blc], 0, buf+n_blc*MDEV_BLOCK_SIZE, MDEV_BLOCK_SIZE);
-      n_blc++;
+  if ((MDEV_BLOCK_SIZE - inn) < nbytes) {
+    // if can fit into the space left in first block
+    bs_bread(dev0, oft[fd].in.blocks[bl],inn, buf, nbytes);
   }
 
-  // when n_blc = 9/ last block
-  bs_bread(dev0, oft[fd].in.blocks[n_blc], 0, buf+n_blc*MDEV_BLOCK_SIZE, inn);
+  // else, cant fit all into space left in the first block
+  // if(oft[fd].fileptr - oft[fd].fileptr < nbytes) 
+  if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
+    nbytes = (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr;
+  }
+
+  bs_bread(dev0, oft[fd].in.blocks[bl],inn, buf, (MDEV_BLOCK_SIZE - inn));
+  bl++; 
+  int bytes_to_copy = nbytes - (MDEV_BLOCK_SIZE - inn);
+
+  while (bytes_to_copy > 0) {
+    bs_bread(dev0, oft[fd].in.blocks[bl],0, buf+(nbytes-bytes_to_copy), MDEV_BLOCK_SIZE);
+    bytes_to_copy -= MDEV_BLOCK_SIZE;
+    bl++;
+  }
 
   // Return the bytes read or SYSERR
   return nbytes;
@@ -523,8 +540,9 @@ int fs_write(int fd, void *buf, int nbytes) {
 
   // calculate the amount of space left to store more data
   // ensure it doesnt go out of bound
-  if((MDEV_BLOCK_SIZE * INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
-    nbytes = (MDEV_BLOCK_SIZE * INODEDIRECTBLOCKS) - oft[fd].fileptr;
+  // if((oft[fd].in.size - oft[fd].fileptr) < nbytes) {
+  if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
+    nbytes = (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS)- oft[fd].fileptr;
   }
 
   /* |----==||======||==    |
@@ -539,33 +557,32 @@ int fs_write(int fd, void *buf, int nbytes) {
   if ((MDEV_BLOCK_SIZE - inn) >= nbytes) {
     // int bs_bwrite(int bsdev, int block, int offset, void *buf, int len);
     bs_bwrite(dev0, oft[fd].in.blocks[bl], inn, buf, nbytes);
+    fs_setmaskbit(oft[fd].in.blocks[bl]);
     oft[fd].in.size += nbytes;
     oft[fd].fileptr += nbytes;    
     return nbytes;
   }
 
   // if data can't fit into the first block
-  int n_bytes = nbytes;
   // fill in the first block first
   bs_bwrite(dev0, oft[fd].in.blocks[bl], inn, buf, (MDEV_BLOCK_SIZE - inn));
+  fs_setmaskbit(oft[fd].in.blocks[bl]);
   // fill other bytes into the following blocks
-  nbytes -= (MDEV_BLOCK_SIZE - inn);
+  int bytes_to_write = nbytes - (MDEV_BLOCK_SIZE - inn);
+
   bl++;
-  int i = 0;
-  while (nbytes > MDEV_BLOCK_SIZE) {
-    bs_bwrite(dev0, oft[fd].in.blocks[bl], 0, buf+(MDEV_BLOCK_SIZE - inn)+ MDEV_BLOCK_SIZE*i, MDEV_BLOCK_SIZE);
-    i++;
+
+  while (nbytes > 0) {
+    bs_bwrite(dev0, oft[fd].in.blocks[bl], 0, buf+(nbytes - bytes_to_write),MDEV_BLOCK_SIZE);
+    fs_setmaskbit(oft[fd].in.blocks[bl]);
     bl++;
-    nbytes -= MDEV_BLOCK_SIZE;
+    bytes_to_write -= MDEV_BLOCK_SIZE;
   }
 
-  // left data store in the final block
-  bs_bwrite(dev0, oft[fd].in.blocks[bl], 0, buf+(MDEV_BLOCK_SIZE - inn)+ MDEV_BLOCK_SIZE*i, nbytes);
+  oft[fd].in.size += nbytes;
+  oft[fd].fileptr += nbytes;
 
-  oft[fd].in.size += n_bytes;
-  oft[fd].fileptr += n_bytes;
-
-  return n_bytes;
+  return nbytes;
 
 /*
   int byte_counter = nbytes;
