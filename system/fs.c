@@ -355,6 +355,7 @@ int fs_open(char *filename, int flags) {
     inode_t tmp_in;
     _fs_get_inode_by_num(dev0, file_inode, &tmp_in);
     oft[file_inode].state = FSTATE_OPEN;
+    oft[file_inode].fileptr = 0;
     oft[file_inode].de = &fsd.root_dir.entry[i];
     oft[file_inode].in.id = tmp_in.id;
     oft[file_inode].in.type = tmp_in.type;
@@ -485,38 +486,43 @@ int fs_read(int fd, void *buf, int nbytes) {
   // Read file contents stored in the data blocks, 
   // always read starting from fileptr
 
-  //?? Do i need to consider oft[fd].in.size??
-
   int bl  = oft[fd].fileptr / MDEV_BLOCK_SIZE; // <- divide by 512;calculate from which block to start
   int inn = oft[fd].fileptr % MDEV_BLOCK_SIZE;  // find offset
 
-  // int _fs_fileblock_to_diskblock(int dev, int fd, int fileblock)
-  // ? _fs_fileblock_to_diskblock(0, fd, bl);
+  // int bs_bread(int dev, int block, int offset, void *buf, int len): OK
+  // int _fs_fileblock_to_diskblock(int dev, int fd, int fileblock)    disk_block_number
 
-  // bs_bread(int dev, int block, int offset, void *buf, int len): 
-  // ??? how to read: iterate through blocks; copy and paste block by block???
-  // consider file.size??
-
-  if ((MDEV_BLOCK_SIZE - inn) < nbytes) {
-    // if can fit into the space left in first block
-    bs_bread(dev0, oft[fd].in.blocks[bl],inn, buf, nbytes);
+  // check if read bytes doesnt go out of file size
+  if ((oft[fd].in.size - oft[fd].fileptr) < nbytes) {
+      nbytes = oft[fd].in.size - oft[fd].fileptr;
   }
 
-  // else, cant fit all into space left in the first block
-  // if(oft[fd].fileptr - oft[fd].fileptr < nbytes) 
-  if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
-    nbytes = (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr;
+  if ((MDEV_BLOCK_SIZE - inn) >= nbytes) {
+    // bytes fits into the space left in first block
+    //kprintf("line 502, hello\n");
+    bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),inn, buf, nbytes);
+    return nbytes;
   }
 
-  bs_bread(dev0, oft[fd].in.blocks[bl],inn, buf, (MDEV_BLOCK_SIZE - inn));
-  bl++; 
-  int bytes_to_copy = nbytes - (MDEV_BLOCK_SIZE - inn);
+  // else, bytes cant fit all into space left in the first block
+    // 1)read in partially from first block
+  bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),inn, buf, (MDEV_BLOCK_SIZE - inn));
+  bl++;
+    // 2) read block by block till the end
+  int bytes_to_read = nbytes - (MDEV_BLOCK_SIZE - inn);
 
-  while (bytes_to_copy > 0) {
-    bs_bread(dev0, oft[fd].in.blocks[bl],0, buf+(nbytes-bytes_to_copy), MDEV_BLOCK_SIZE);
-    bytes_to_copy -= MDEV_BLOCK_SIZE;
+//kprintf("line 513: bytes_to_read: %d, remainder: %d\n", bytes_to_read, (MDEV_BLOCK_SIZE - inn));
+
+  while (bytes_to_read > MDEV_BLOCK_SIZE) {
+    bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),0, buf+nbytes-bytes_to_read, MDEV_BLOCK_SIZE);
     bl++;
+    bytes_to_read -= MDEV_BLOCK_SIZE;
   }
+
+    // read the final part that's less than MDEV_BLOCK_SIZE
+    // bl++;
+  // kprintf("line 584: bytes_to_read: %d, left to read: %d,  bl: %d\n", bytes_to_read, nbytes - bytes_to_read,bl);
+    bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),0, buf+nbytes-bytes_to_read, bytes_to_read);
 
   // Return the bytes read or SYSERR
   return nbytes;
@@ -540,15 +546,9 @@ int fs_write(int fd, void *buf, int nbytes) {
 
   // calculate the amount of space left to store more data
   // ensure it doesnt go out of bound
-  // if((oft[fd].in.size - oft[fd].fileptr) < nbytes) {
   if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
     nbytes = (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS)- oft[fd].fileptr;
   }
-
-  /* |----==||======||==    |
-      we need to calculate how much left in the first available datablock
-      then store till the block in the end
-  */
 
   int bl = oft[fd].fileptr / MDEV_BLOCK_SIZE; // <- divide by 512; calculate block index
   int inn = oft[fd].fileptr % MDEV_BLOCK_SIZE; // find which byte in a data block
@@ -556,67 +556,39 @@ int fs_write(int fd, void *buf, int nbytes) {
   // if data can fit into the first block
   if ((MDEV_BLOCK_SIZE - inn) >= nbytes) {
     // int bs_bwrite(int bsdev, int block, int offset, void *buf, int len);
-    bs_bwrite(dev0, oft[fd].in.blocks[bl], inn, buf, nbytes);
+    bs_bwrite(dev0, _fs_fileblock_to_diskblock(0, fd, bl), inn, buf, nbytes);
     fs_setmaskbit(oft[fd].in.blocks[bl]);
     oft[fd].in.size += nbytes;
     oft[fd].fileptr += nbytes;    
+    // kprintf("line 562: hi\n");
     return nbytes;
   }
 
   // if data can't fit into the first block
   // fill in the first block first
-  bs_bwrite(dev0, oft[fd].in.blocks[bl], inn, buf, (MDEV_BLOCK_SIZE - inn));
+  bs_bwrite(dev0, _fs_fileblock_to_diskblock(0, fd, bl), inn, buf, (MDEV_BLOCK_SIZE - inn));
   fs_setmaskbit(oft[fd].in.blocks[bl]);
   // fill other bytes into the following blocks
   int bytes_to_write = nbytes - (MDEV_BLOCK_SIZE - inn);
-
+  // kprintf("line 567: bytes_to_write: %d, remainder: %d\n", bytes_to_write, (MDEV_BLOCK_SIZE - inn));
   bl++;
 
-  while (nbytes > 0) {
-    bs_bwrite(dev0, oft[fd].in.blocks[bl], 0, buf+(nbytes - bytes_to_write),MDEV_BLOCK_SIZE);
+  while (bytes_to_write > MDEV_BLOCK_SIZE) {
+    bs_bwrite(dev0, _fs_fileblock_to_diskblock(0, fd, bl), 0, buf+(nbytes - bytes_to_write), MDEV_BLOCK_SIZE);
     fs_setmaskbit(oft[fd].in.blocks[bl]);
     bl++;
     bytes_to_write -= MDEV_BLOCK_SIZE;
   }
 
+  // read the final part that's less than MDEV_BLOCK_SIZE
+  // bl++;
+   // kprintf("line 584: bytes_to_write: %d, left to write: %d,  bl: %d\n", bytes_to_write, nbytes - bytes_to_write,bl);
+  bs_bwrite(dev0, _fs_fileblock_to_diskblock(0, fd, bl), 0, buf+(nbytes - bytes_to_write), bytes_to_write);
+
   oft[fd].in.size += nbytes;
   oft[fd].fileptr += nbytes;
 
   return nbytes;
-
-/*
-  int byte_counter = nbytes;
-
-  if ( (MDEV_BLOCK_SIZE - inn) <= nbytes) { 
-    // if enough space in one block to store written data
-    if(bs_bwrite(dev0, oft[fd].in.blocks[bl], inn, buf, nbytes) < 0) {
-      errormsg("writing failed\n");
-      return SYSERR;
-    }
-    oft[fd].in.size += nbytes;
-    oft[fd].fileptr += nbytes;
-
-  } else {
-      // int bs_bwrite(int bsdev, int block, int offset, void *buf, int len);
-    bs_bwrite(dev0, oft[fd].in.blocks[bl], inn, buf, (MDEV_BLOCK_SIZE - inn));
-    byte_counter -= (MDEV_BLOCK_SIZE - inn);
-    bl++;
-    buf += (MDEV_BLOCK_SIZE - inn); // ?? correct way to move buff by N characters?
-    while (byte_counter > 0 && bl < INODEDIRECTBLOCKS) { // <10
-      bs_bwrite(dev0, oft[fd].in.blocks[bl], 0, buf, MDEV_BLOCK_SIZE);
-      bl++;
-      buf += MDEV_BLOCK_SIZE;
-      byte_counter -= MDEV_BLOCK_SIZE;
-      } 
-    if (bl == INODEDIRECTBLOCKS) {
-      errormsg("reach maximum number of blocks\n");
-      return SYSERR;
-    }
-    oft[fd].in.size += nbytes;
-    oft[fd].fileptr = (nbytes - (MDEV_BLOCK_SIZE - inn)) % MDEV_BLOCK_SIZE;
-   }
-    return nbytes;
-    */
 }
 
 int fs_link(char *src_filename, char* dst_filename) {
@@ -676,7 +648,6 @@ int fs_link(char *src_filename, char* dst_filename) {
       _fs_put_inode_by_num(dev0, src_inode, &tmp_in);
       
       fsd.root_dir.numentries++;
-      fsd.inodes_used++;
         //fs_print_dir();
       return OK;
     }
@@ -702,7 +673,6 @@ int fs_unlink(char *filename) {
         fsd.root_dir.entry[i].inode_num = EMPTY;
         memset(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
         fsd.root_dir.numentries--;
-        fsd.inodes_used--;
         break;
     }
     i++;    
@@ -735,6 +705,8 @@ int fs_unlink(char *filename) {
     for(int i = 0; i < INODEDIRECTBLOCKS; i++) {
       fs_clearmaskbit(tmp_out.blocks[i]);
     }
+
+    fsd.inodes_used--;
   }
 
   _fs_put_inode_by_num(dev0, file_inode, &tmp_out);

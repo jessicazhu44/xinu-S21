@@ -156,34 +156,38 @@ int fstest_mkdev2() {
     ASSERT_PASS(bs_mkdev(0, MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS))
     ASSERT_PASS(fs_mkfs(0, DEFAULT_NUM_INODES))
 
-char *buf;
-int len = 42;
-int fd;
 int i;
+char *buf1, *buf2;
+int buf_size = 5122;
+int fd;
 
-buf = getmem(sizeof(char) * len);
+buf1 = getmem(sizeof(char) * buf_size);
+buf2 = getmem(sizeof(char) * buf_size);
 
-for (i = 0; i < len; i++) {
-  buf[i] = (char) i;
+for (i = 0; i < buf_size; i++) {
+  // buf1[i] = (char) i;
+  buf1[i] = 'a';
+  // printf("buff1:%c\n", buf1[i]);
+  buf2[i] = (char) 0;
 }
 
 ASSERT_PASS(fd = fs_create("file", O_CREAT))
 
-ASSERT_TRUE(fs_write(fd, buf, len) == len)
+
+ASSERT_TRUE(fs_write(fd, buf1, buf_size) == 5120)
 ASSERT_PASS(fs_seek(fd, 0))
-ASSERT_TRUE(fs_read(fd, buf, len) == len)
+ASSERT_TRUE(fs_read(fd, buf2, buf_size) == 5120)
 
-freemem(buf, sizeof(char) * len);
+for (i = 0; i < 5120; i++) {
+  //printf("buff1: %p , buff2: %p \n",&buf1[i], &buf2[i] );
+  ASSERT_TRUE(buf1[i] == buf2[i])
+}
 
-/*
-    int fd;
-    ASSERT_PASS(fd = fs_create("file1", O_CREAT))
-    ASSERT_PASS(fs_link("file1", "file2"))
-    ASSERT_PASS(fs_link("file2", "file3"))
-    ASSERT_PASS(fs_unlink("file2"))
-    ASSERT_FAIL(fs_unlink("file2"))
-    ASSERT_PASS(fs_unlink("file1"))
-*/
+ASSERT_PASS(fs_close(fd))
+
+ASSERT_PASS(freemem(buf1, sizeof(char) * buf_size))
+ASSERT_PASS(freemem(buf2, sizeof(char) * buf_size))
+
     // to test read and write 
     ASSERT_PASS(fs_freefs(0))
     ASSERT_PASS(bs_freedev(0))
