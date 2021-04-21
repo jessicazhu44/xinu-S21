@@ -501,6 +501,7 @@ int fs_read(int fd, void *buf, int nbytes) {
     // bytes fits into the space left in first block
     //kprintf("line 502, hello\n");
     bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),inn, buf, nbytes);
+    oft[fd].fileptr += nbytes; 
     return nbytes;
   }
 
@@ -523,7 +524,7 @@ int fs_read(int fd, void *buf, int nbytes) {
     // bl++;
   // kprintf("line 584: bytes_to_read: %d, left to read: %d,  bl: %d\n", bytes_to_read, nbytes - bytes_to_read,bl);
     bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),0, buf+nbytes-bytes_to_read, bytes_to_read);
-
+    oft[fd].fileptr += nbytes; 
   // Return the bytes read or SYSERR
   return nbytes;
 }
@@ -544,6 +545,7 @@ int fs_write(int fd, void *buf, int nbytes) {
     return SYSERR;
   }
 
+  kprintf("line 547: %d, %d\n", (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr, nbytes);
   // calculate the amount of space left to store more data
   // ensure it doesnt go out of bound
   if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
@@ -587,6 +589,7 @@ int fs_write(int fd, void *buf, int nbytes) {
 
   oft[fd].in.size += nbytes;
   oft[fd].fileptr += nbytes;
+ kprintf("line 591: nbytes: %d, oft[fd].in.size: %d,  oft[fd].fileptr: %d\n", nbytes, oft[fd].in.size,oft[fd].fileptr);
 
   return nbytes;
 }
