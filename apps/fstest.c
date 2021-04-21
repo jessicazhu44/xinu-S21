@@ -168,7 +168,6 @@ for (i = 0; i < buf_size; i++) {
   buf2[i] =  0;
 }
 
-
 int fd;
 ASSERT_PASS(fd = fs_create("file", O_CREAT))
 
