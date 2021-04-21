@@ -158,7 +158,7 @@ int a2() {
 
 int i;
 char *buf1, *buf2;
-int buf_size = 5200;
+int buf_size = 512*5;
 int fd;
 
 buf1 = getmem(sizeof(int) * buf_size);
@@ -168,29 +168,26 @@ for (i = 0; i < buf_size; i++) {
   buf1[i] = i;
   buf2[i] =  0;
   
-    printf("buff1: %d , buff2: %d \n",buf1[i], buf2[i] );
+    //printf("buff1: %d , buff2: %d \n",buf1[i], buf2[i] );
   
 }
 
 ASSERT_PASS(fd = fs_create("file", O_CREAT))
 
 
-ASSERT_TRUE(fs_write(fd, buf1, buf_size) == 5120)
+ASSERT_TRUE(fs_write(fd, buf1, buf_size) == buf_size)
 //int fs_seek(int fd, int offset)
 //ASSERT_PASS(fs_seek(fd, 5119))
-ASSERT_TRUE(fs_write(fd, buf1, buf_size)==0)
+//ASSERT_TRUE(fs_write(fd, buf1, buf_size)==0)
 ASSERT_PASS(fs_seek(fd, 0))
-ASSERT_TRUE(fs_read(fd, buf2, buf_size) == 5120)
+ASSERT_TRUE(fs_read(fd, buf2, buf_size) == buf_size)
 
-for (i = 0; i < 5120; i++) {
+for (i = 10; i < buf_size; i++) {
   //printf("buff1: %p , buff2: %p \n",&buf1[i], &buf2[i] );
   ASSERT_TRUE(buf1[i] == buf2[i])
 }
 
-for (i = 5120; i < buf_size; i++) {
-  // printf("buff1: %d , buff2: %d \n",buf1[i], buf2[i] );
-  //ASSERT_TRUE(buf1[i] != buf2[i])
-}
+
 
 ASSERT_PASS(fs_close(fd))
 

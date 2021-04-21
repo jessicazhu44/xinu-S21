@@ -545,7 +545,7 @@ int fs_write(int fd, void *buf, int nbytes) {
     return SYSERR;
   }
 
-  kprintf("line 547: %d, %d\n", (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr, nbytes);
+  //kprintf("line 547: %d, %d\n", (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr, nbytes);
   // calculate the amount of space left to store more data
   // ensure it doesnt go out of bound
   if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
@@ -589,7 +589,7 @@ int fs_write(int fd, void *buf, int nbytes) {
 
   oft[fd].in.size += nbytes;
   oft[fd].fileptr += nbytes;
- kprintf("line 591: nbytes: %d, oft[fd].in.size: %d,  oft[fd].fileptr: %d\n", nbytes, oft[fd].in.size,oft[fd].fileptr);
+ //kprintf("line 591: nbytes: %d, oft[fd].in.size: %d,  oft[fd].fileptr: %d\n", nbytes, oft[fd].in.size,oft[fd].fileptr);
 
   return nbytes;
 }
