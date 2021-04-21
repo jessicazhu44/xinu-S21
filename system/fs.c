@@ -564,10 +564,6 @@ int fs_write(int fd, void *buf, int nbytes) {
   // ensure it doesnt go out of bound
   if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
     nbytes = (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS)- oft[fd].fileptr;
-    if(nbytes <= 0) {
-      errormsg("line 568\n");
-      return SYSERR;
-    }
   }
 
   int bl = oft[fd].fileptr / MDEV_BLOCK_SIZE; // <- divide by 512; calculate block index
