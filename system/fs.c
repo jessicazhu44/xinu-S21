@@ -473,13 +473,13 @@ int fs_seek(int fd, int offset) {
   }
 
   if (offset >= oft[fd].in.size) { 
-    kprintf("line 464: offset:%d, size: %d\n", offset, oft[fd].in.size);
+    // kprintf("line 464: offset:%d, size: %d\n", offset, oft[fd].in.size);
     errormsg("offset out of bound\n");
     return SYSERR;
   }
 
   // set offset
-  oft[fd].fileptr = offset;
+  oft[fd].fileptr = offset+1;
   // Return OK on success
   return OK;
 }
@@ -558,6 +558,11 @@ int fs_write(int fd, void *buf, int nbytes) {
     return SYSERR;
   }
 
+  if(oft[fd].fileptr >= MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) {
+        errormsg("file pointer >= 5120\n");
+    return SYSERR;
+  }
+
   //kprintf("line 547: %d, %d\n", (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr, nbytes);
   // calculate the amount of space left to store more data
   // ensure it doesnt go out of bound
@@ -607,7 +612,7 @@ int fs_write(int fd, void *buf, int nbytes) {
     }
   oft[fd].fileptr += nbytes;
  //kprintf("line 591: nbytes: %d, oft[fd].in.size: %d,  oft[fd].fileptr: %d\n", nbytes, oft[fd].in.size,oft[fd].fileptr);
- //kprintf("line 597: size: %d\n", oft[fd].in.size);
+ kprintf("line 597: pointer: %d\n",oft[fd].fileptr);
   return nbytes;
 }
 

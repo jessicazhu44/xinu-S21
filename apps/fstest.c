@@ -159,7 +159,7 @@ int a2() {
 int n = 1;
 int i;
 char *buf1, *buf2;
-int buf_size = 3;
+int buf_size = 5120;
 int fd;
 
 buf1 = getmem(sizeof(int) * buf_size);
@@ -168,39 +168,16 @@ buf2 = getmem(sizeof(int) * buf_size);
 for (i = 0; i < buf_size; i++) {
   buf1[i] = i;
   buf2[i] =  0;
-    //printf("buff1: %d , buff2: %d \n",buf1[i], buf2[i] );
 }
 
 
-int fd0, fda, fdb, fdc;
+int fd0;
 ASSERT_PASS(fd0 = fs_create("file", O_CREAT))
 ASSERT_TRUE(fs_write(fd0, buf1, buf_size) == buf_size)
-ASSERT_PASS(fs_close(fd0))
-ASSERT_PASS(fs_link("file", "linkc"))
-ASSERT_PASS(fs_link("linkc", "linkb"))
-ASSERT_PASS(fs_link("linkb", "linka"))
-ASSERT_PASS(fda = fs_open("linka", O_RDWR))
-ASSERT_PASS(fs_seek(fda, 0))
-ASSERT_TRUE(fs_read(fda ,buf2, buf_size) == buf_size)
-for (i = 0; i < buf_size; i++) {
-  //printf("buff1: %p , buff2: %p \n",&buf1[i], &buf2[i] );
-  ASSERT_TRUE(buf1[i] == buf2[i])
-}
+//ASSERT_PASS(fs_seek(fd0, buf_size-1))
+ASSERT_FAIL(fs_write(fd0, buf1, 1))
 
 
-ASSERT_PASS(fs_close(fda))
-
-ASSERT_PASS(fs_unlink("linka"))
-ASSERT_PASS(fdb = fs_open("file", O_RDWR))
-ASSERT_PASS(fs_seek(fdb, 0))
-ASSERT_TRUE(fs_read(fdb ,buf2, buf_size) == buf_size)
-
-for (i = 0; i < buf_size; i++) {
-  //printf("buff1: %p , buff2: %p \n",&buf1[i], &buf2[i] );
-  ASSERT_TRUE(buf1[i] == buf2[i])
-}
-
-ASSERT_PASS(fs_close(fd0))
 
 ASSERT_PASS(freemem(buf1, sizeof(int) * buf_size))
 ASSERT_PASS(freemem(buf2, sizeof(int) * buf_size))
