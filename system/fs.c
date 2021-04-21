@@ -352,6 +352,7 @@ int fs_open(char *filename, int flags) {
   // } 
   // make an entry of that inode in the file table. 
         // changes on OFT
+
     inode_t tmp_in;
     _fs_get_inode_by_num(dev0, file_inode, &tmp_in);
     oft[file_inode].state = FSTATE_OPEN;
@@ -376,6 +377,7 @@ int fs_open(char *filename, int flags) {
   // oft[i].in = tmp_out;
 
   //Return file descriptor on success
+    //kprintf("line 380 size %d\n", oft[file_inode].in.size);
   return file_inode;
 }
 
@@ -385,6 +387,16 @@ int fs_close(int fd) {
     errormsg("file already closed\n");
     return SYSERR;
   }
+
+  inode_t tmp_in;
+  tmp_in.id = oft[fd].in.id;
+  tmp_in.type = oft[fd].in.type;
+  tmp_in.nlink = oft[fd].in.nlink;
+  tmp_in.device = oft[fd].in.device;
+  tmp_in.size =oft[fd].in.size;
+  memset(tmp_in.blocks, *oft[fd].in.blocks, INODEBLOCKS);
+
+  _fs_put_inode_by_num(dev0, fd, &tmp_in);
   // Change the state of an open file to FSTATE_CLOSED in the file table
   oft[fd].state = FSTATE_CLOSED;
   // Return OK on success
@@ -461,6 +473,7 @@ int fs_seek(int fd, int offset) {
   }
 
   if (offset >= oft[fd].in.size) { 
+    kprintf("line 464: offset:%d, size: %d\n", offset, oft[fd].in.size);
     errormsg("offset out of bound\n");
     return SYSERR;
   }
@@ -594,7 +607,7 @@ int fs_write(int fd, void *buf, int nbytes) {
     }
   oft[fd].fileptr += nbytes;
  //kprintf("line 591: nbytes: %d, oft[fd].in.size: %d,  oft[fd].fileptr: %d\n", nbytes, oft[fd].in.size,oft[fd].fileptr);
-// kprintf("line 597: size: %d\n", oft[fd].in.size);
+ kprintf("line 597: size: %d\n", oft[fd].in.size);
   return nbytes;
 }
 
