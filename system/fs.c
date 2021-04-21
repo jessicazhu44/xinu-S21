@@ -496,10 +496,6 @@ int fs_read(int fd, void *buf, int nbytes) {
     return SYSERR;
   }
 
-  if(oft[fd].fileptr >= oft[fd].in.size) {
-    errormsg("file pointer >= 5120\n");
-    return SYSERR;
-  }
 
   // Read file contents stored in the data blocks, 
   // always read starting from fileptr
@@ -563,16 +559,15 @@ int fs_write(int fd, void *buf, int nbytes) {
     return SYSERR;
   }
 
-  if(oft[fd].fileptr == MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) {
-    errormsg("file pointer >= 5120\n");
-    return SYSERR;
-  }
-
   //kprintf("line 547: %d, %d\n", (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr, nbytes);
   // calculate the amount of space left to store more data
   // ensure it doesnt go out of bound
   if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
     nbytes = (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS)- oft[fd].fileptr;
+    if(nbytes <= 0) {
+      errormsg("line 568\n");
+      return SYSERR;
+    }
   }
 
   int bl = oft[fd].fileptr / MDEV_BLOCK_SIZE; // <- divide by 512; calculate block index
