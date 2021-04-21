@@ -150,17 +150,15 @@ int fstest_mkdev() {
 }
 
 
-int a2() {
+int fstest_mkdev2() {
 
 
     ASSERT_PASS(bs_mkdev(0, MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS))
     ASSERT_PASS(fs_mkfs(0, DEFAULT_NUM_INODES))
 
-int n = 1;
 int i;
 char *buf1, *buf2;
 int buf_size = 5120;
-int fd;
 
 buf1 = getmem(sizeof(int) * buf_size);
 buf2 = getmem(sizeof(int) * buf_size);
@@ -171,7 +169,7 @@ for (i = 0; i < buf_size; i++) {
 }
 
 
-int fd0;
+int fd;
 ASSERT_PASS(fd = fs_create("file", O_CREAT))
 
 ASSERT_TRUE(fs_write(fd, buf1, buf_size) == buf_size)
@@ -217,7 +215,7 @@ int fstest(int nargs, char *args[]) {
   printf("\n\n\n");
   //TEST(fstest_testbitmask)
   //TEST(fstest_mkdev)
-  TEST(a2)
+  TEST(fstest_mkdev2)
 #else
   printf("No filesystem support\n");
 #endif

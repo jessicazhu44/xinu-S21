@@ -344,12 +344,6 @@ int fs_open(char *filename, int flags) {
 
   // Using _get_inode_by_num function, 
   // (Only the inodes in the file table can be edited)
-  // inode_t tmp_out;
-  // int _fs_get_inode_by_num(int dev, int inode_number, inode_t *out)
-  // if(_fs_get_inode_by_num(dev0, i, &tmp_out) <0) {
-  //  errormsg("get inode failed\n");
-  //  return SYSERR;
-  // } 
   // make an entry of that inode in the file table. 
         // changes on OFT
 
@@ -366,18 +360,6 @@ int fs_open(char *filename, int flags) {
     memset(oft[file_inode].in.blocks, *tmp_in.blocks, INODEBLOCKS);
     oft[file_inode].flag = flags;
 
-
-  // oft[file_inode].state = FSTATE_OPEN;
-  // oft[file_inode].de = &fsd.root_dir.entry[i];
-  // oft[file_inode].in.id = file_inode;
-  // oft[file_inode].in.type = INODE_TYPE_FILE;
-  // oft[file_inode].in.nlink = 1;
-  // oft[file_inode].flag = flags;
-  // oft[i].de = &fsd.root_dir.entry[i];
-  // oft[i].in = tmp_out;
-
-  //Return file descriptor on success
-    //kprintf("line 380 size %d\n", oft[file_inode].in.size);
   return file_inode;
 }
 
@@ -405,7 +387,6 @@ int fs_close(int fd) {
 
 int fs_create(char *filename, int mode) {
   // dont support directory
-  // if (mode != INODE_TYPE_FILE) {
   if (mode != O_CREAT) {
     errormsg("Directory creation not supported\n");
     return SYSERR;
@@ -436,8 +417,7 @@ int fs_create(char *filename, int mode) {
         memcpy(fsd.root_dir.entry[i].name, filename,FILENAMELEN); //strcpy acts on value \0 or NULL
         fsd.root_dir.numentries++;
         fsd.inodes_used++;
-        // fs_print_inode(i);
-  
+
         // update inode info - changes directly on data blocks
         inode_t tmp_in;
         _fs_get_inode_by_num(dev0, i, &tmp_in);
@@ -495,15 +475,11 @@ int fs_read(int fd, void *buf, int nbytes) {
     errormsg("permission denied\n");
     return SYSERR;
   }
-//kprintf("line 498, pointer: %dsize %d, max size: %d \n",oft[fd].fileptr, oft[fd].in.size, MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS);
-  // Read file contents stored in the data blocks, 
-  // always read starting from fileptr
 
+ // Read file contents stored in the data blocks, 
+  // always read starting from fileptr
   int bl  = oft[fd].fileptr / MDEV_BLOCK_SIZE; // <- divide by 512;calculate from which block to start
   int inn = oft[fd].fileptr % MDEV_BLOCK_SIZE;  // find offset
-
-  // int bs_bread(int dev, int block, int offset, void *buf, int len): OK
-  // int _fs_fileblock_to_diskblock(int dev, int fd, int fileblock)    disk_block_number
 
   // check if read bytes doesnt go out of file size
   if ((oft[fd].in.size - oft[fd].fileptr) < nbytes) {
@@ -512,7 +488,6 @@ int fs_read(int fd, void *buf, int nbytes) {
 
   if ((MDEV_BLOCK_SIZE - inn) >= nbytes) {
     // bytes fits into the space left in first block
-    //kprintf("line 502, hello\n");
     bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),inn, buf, nbytes);
     oft[fd].fileptr += nbytes; 
     return nbytes;
@@ -525,8 +500,6 @@ int fs_read(int fd, void *buf, int nbytes) {
     // 2) read block by block till the end
   int bytes_to_read = nbytes - (MDEV_BLOCK_SIZE - inn);
 
-//kprintf("line 513: bytes_to_read: %d, remainder: %d\n", bytes_to_read, (MDEV_BLOCK_SIZE - inn));
-
   while (bytes_to_read > MDEV_BLOCK_SIZE) {
     bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),0, buf+nbytes-bytes_to_read, MDEV_BLOCK_SIZE);
     bl++;
@@ -534,9 +507,7 @@ int fs_read(int fd, void *buf, int nbytes) {
   }
 
     // read the final part that's less than MDEV_BLOCK_SIZE
-    // bl++;
-  // kprintf("line 584: bytes_to_read: %d, left to read: %d,  bl: %d\n", bytes_to_read, nbytes - bytes_to_read,bl);
-    bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),0, buf+nbytes-bytes_to_read, bytes_to_read);
+   bs_bread(dev0, _fs_fileblock_to_diskblock(0, fd, bl),0, buf+nbytes-bytes_to_read, bytes_to_read);
     oft[fd].fileptr += nbytes; 
   // Return the bytes read or SYSERR
   return nbytes;
@@ -558,8 +529,7 @@ int fs_write(int fd, void *buf, int nbytes) {
     return SYSERR;
   }
 
-  //kprintf("line 547: %d, %d\n", (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr, nbytes);
-  // calculate the amount of space left to store more data
+ // calculate the amount of space left to store more data
   // ensure it doesnt go out of bound
   if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
     nbytes = (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS)- oft[fd].fileptr;
@@ -591,7 +561,6 @@ int fs_write(int fd, void *buf, int nbytes) {
   fs_setmaskbit(oft[fd].in.blocks[bl]);
   // fill other bytes into the following blocks
   int bytes_to_write = nbytes - (MDEV_BLOCK_SIZE - inn);
-  // kprintf("line 567: bytes_to_write: %d, remainder: %d\n", bytes_to_write, (MDEV_BLOCK_SIZE - inn));
   bl++;
 
   while (bytes_to_write > MDEV_BLOCK_SIZE) {
@@ -602,21 +571,18 @@ int fs_write(int fd, void *buf, int nbytes) {
   }
 
   // read the final part that's less than MDEV_BLOCK_SIZE
-  // bl++;
-   // kprintf("line 584: bytes_to_write: %d, left to write: %d,  bl: %d\n", bytes_to_write, nbytes - bytes_to_write,bl);
-  bs_bwrite(dev0, _fs_fileblock_to_diskblock(0, fd, bl), 0, buf+(nbytes - bytes_to_write), bytes_to_write);
+ bs_bwrite(dev0, _fs_fileblock_to_diskblock(0, fd, bl), 0, buf+(nbytes - bytes_to_write), bytes_to_write);
 
   if(oft[fd].fileptr + nbytes > oft[fd].in.size) {
       oft[fd].in.size = oft[fd].fileptr + nbytes;
     }
   oft[fd].fileptr += nbytes;
- //kprintf("line 591: nbytes: %d, oft[fd].in.size: %d,  oft[fd].fileptr: %d\n", nbytes, oft[fd].in.size,oft[fd].fileptr);
- //kprintf("line 597: pointer: %d, size %d \n",oft[fd].fileptr,oft[fd].in.size );
+
   return nbytes;
 }
 
 int fs_link(char *src_filename, char* dst_filename) {
-  // bool src_exist = 0;
+
   int src_inode = -1;
 
   for (int i = 0; i < DIRECTORY_SIZE; i++) { 
@@ -634,26 +600,6 @@ int fs_link(char *src_filename, char* dst_filename) {
       errormsg("Source file doesn't exist\n");
       return SYSERR;      
   }
-     
-/*
-  // Search the src_filename in the root directory
-  for (int i = 0; i < DIRECTORY_SIZE; i++) {
-    if (strcmp(fsd.root_dir.entry[i].name, dst_filename) == 0) {
-      // Return SYSERR if the filename already exists
-      printf("No duplicate link names are allowed\n");
-      return SYSERR;
-    }
-  }
-  
-  
-  for (int i = 0; i < DIRECTORY_SIZE; i++) {
-    if (strcmp(fsd.root_dir.entry[i].name, src_filename) == 0) {
-        src_inode = i;
-        break;
-    }
-  }
-*/
-
 
   for (int i = 0; i < DIRECTORY_SIZE; i++) {
     if (fsd.root_dir.entry[i].inode_num == EMPTY) {
@@ -661,18 +607,14 @@ int fs_link(char *src_filename, char* dst_filename) {
       // the 1st new entry with dst_filename as its filename
       fsd.root_dir.entry[i].inode_num = src_inode;
       memcpy(fsd.root_dir.entry[i].name, dst_filename,FILENAMELEN);
-
-/*
-      // update inode in oft
-      oft[src_inode].in.nlink++;
-*/      
+     
       inode_t tmp_in;
       _fs_get_inode_by_num(dev0, src_inode, &tmp_in);
       tmp_in.nlink++;
       _fs_put_inode_by_num(dev0, src_inode, &tmp_in);
       
       fsd.root_dir.numentries++;
-        //fs_print_dir();
+
       return OK;
     }
   }
@@ -681,11 +623,6 @@ int fs_link(char *src_filename, char* dst_filename) {
     return SYSERR;
 
 }
-
-
-// ?? Both root directory and OFT has inode, when we remove a file using unlink,
-// do we need to update the inodes in both OFT and ROOT?
-
 
 int fs_unlink(char *filename) {
   // Search filename in the root directory
@@ -704,7 +641,7 @@ int fs_unlink(char *filename) {
 
   if (i == DIRECTORY_SIZE) {
     errormsg("no such file\n");
-      // fs_print_dir();
+
     return SYSERR;
   }
 
@@ -735,93 +672,6 @@ int fs_unlink(char *filename) {
 
   _fs_put_inode_by_num(dev0, file_inode, &tmp_out);
 
-
-/*
-  if(tmp_out.nlink == 0) {
-      // If the nlinks of the respective inode left is 0, 
-  // just remove the entry in the root directory
-    fsd.root_dir.entry[i].inode_num = EMPTY;
-    memset(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
-
-    oft[file_inode]
-  }
-
-    if(tmp_out.nlink > 0) {
-    fsd.root_dir.entry[i].inode_num = EMPTY;
-    memset(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
-    fsd.root_dir.numentries--;
-
-    tmp_out.id = EMPTY;
-    tmp_out.nlink = 0;
-    memset(tmp_out.blocks, 0, INODEBLOCKS);
-  }
-
-
-  // If the nlinks of the respective inode is more than 1, 
-  // just remove the entry in the root directory
-  if(tmp_out.nlink > 1) {
-    fsd.root_dir.entry[i].inode_num = EMPTY;
-    memset(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
-    
-    
-  }
-
-  // If the nlinks of the inode is just 1, 
-  // then delete the respective inode along with its data blocks as well
-  if(tmp_out.nlink == 1) {
-    fsd.root_dir.entry[i].inode_num = EMPTY;
-    memset(fsd.root_dir.entry[i].name, 0,FILENAMELEN);
-    fsd.root_dir.numentries--;
-
-    tmp_out.id = EMPTY;
-    tmp_out.nlink = 0;
-    memset(tmp_out.blocks, 0, INODEBLOCKS);
-  }
-  
-  inode_t tmp_out;
-  // int _fs_get_inode_by_num(int dev, int inode_number, inode_t *out)
-  if(_fs_get_inode_by_num(dev0, file_inode, &tmp_out) <0) {
-    errormsg("get inode failed\n");
-    return SYSERR;
-  } 
-
-
-  // printf("line 604: %s, %d\n",tmp_out.type, tmp_out.nlink );
-
-  // If the nlinks of the respective inode is more than 1, 
-  // just remove the entry in the root directory
-  if (tmp_out.nlink > 1) {
-    //  _fs_get_inode_by_num(dev0, inode_num, &tmp_in);
-    // kprintf("line 613: %d\n", tmp_out.nlink);
-    tmp_out.nlink--; 
-
-    fsd.root_dir.entry[i].inode_num = EMPTY;
-    memset(fsd.root_dir.entry[i].name, 0, FILENAMELEN);
-    _fs_put_inode_by_num(dev0, file_inode, &tmp_out);
-    
-    //??? after removal, do we need to update inodes in both oft and root_directory?
-    //update inode info in OFT
-    oft[fd].in.nlink++;
-    // remove the entry in OFT
-
-
-
-    // fs_print_inode(file_inode);
-
-  }
-
-  // If the nlinks of the inode is just 1, 
-  // then delete the respective inode along with its data blocks as well
-  if (tmp_out.nlink == 1) {
-    fsd.root_dir.entry[i].inode_num = EMPTY;
-    memset(fsd.root_dir.entry[i].name, 0, FILENAMELEN);
-    // _fs_put_inode_by_num(int dev, int inode_number, inode_t *in)
-    inode_t tmp_in; //?? Do i need to specifically set all inode parameters to NULL??
-    _fs_put_inode_by_num(dev0, file_inode, &tmp_in);
-    fsd.root_dir.numentries--;
-  }  
-*/
-  //fs_print_dir();
   return OK;
 }
 
