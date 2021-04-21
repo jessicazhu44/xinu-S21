@@ -172,10 +172,10 @@ for (i = 0; i < buf_size; i++) {
 
 
 int fd0;
-ASSERT_PASS(fd0 = fs_create("file", O_CREAT))
-ASSERT_TRUE(fs_write(fd0, buf1, buf_size) == buf_size)
-//ASSERT_PASS(fs_seek(fd0, buf_size-1))
-ASSERT_FAIL(fs_write(fd0, buf1, 1))
+ASSERT_PASS(fd = fs_create("file", O_CREAT))
+
+ASSERT_TRUE(fs_write(fd, buf1, buf_size) == buf_size)
+ASSERT_FAIL(fs_write(fd, buf2, 1))
 
 
 

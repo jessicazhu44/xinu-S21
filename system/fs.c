@@ -479,7 +479,7 @@ int fs_seek(int fd, int offset) {
   }
 
   // set offset
-  oft[fd].fileptr = offset+1;
+  oft[fd].fileptr = offset;
   // Return OK on success
   return OK;
 }
@@ -495,8 +495,7 @@ int fs_read(int fd, void *buf, int nbytes) {
     errormsg("permission denied\n");
     return SYSERR;
   }
-
-
+//kprintf("line 498, pointer: %dsize %d, max size: %d \n",oft[fd].fileptr, oft[fd].in.size, MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS);
   // Read file contents stored in the data blocks, 
   // always read starting from fileptr
 
@@ -564,6 +563,10 @@ int fs_write(int fd, void *buf, int nbytes) {
   // ensure it doesnt go out of bound
   if((MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) - oft[fd].fileptr < nbytes) {
     nbytes = (MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS)- oft[fd].fileptr;
+    if(nbytes <= 0) {
+      errormsg("exceed max file size\n");
+      return SYSERR;
+    }
   }
 
   int bl = oft[fd].fileptr / MDEV_BLOCK_SIZE; // <- divide by 512; calculate block index
