@@ -495,12 +495,12 @@ int fs_read(int fd, void *buf, int nbytes) {
     errormsg("permission denied\n");
     return SYSERR;
   }
-
+/*
   if(oft[fd].fileptr >= MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) {
     errormsg("file pointer >= 5120\n");
     return SYSERR;
   }
-
+*/
   // Read file contents stored in the data blocks, 
   // always read starting from fileptr
 
