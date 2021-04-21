@@ -563,7 +563,7 @@ int fs_write(int fd, void *buf, int nbytes) {
     return SYSERR;
   }
 
-  if(oft[fd].fileptr >= MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) {
+  if(oft[fd].fileptr == MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) {
     errormsg("file pointer >= 5120\n");
     return SYSERR;
   }
