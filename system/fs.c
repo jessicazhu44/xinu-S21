@@ -495,12 +495,12 @@ int fs_read(int fd, void *buf, int nbytes) {
     errormsg("permission denied\n");
     return SYSERR;
   }
-/*
-  if(oft[fd].fileptr >= MDEV_BLOCK_SIZE*INODEDIRECTBLOCKS) {
+
+  if(oft[fd].fileptr >= oft[fd].in.size) {
     errormsg("file pointer >= 5120\n");
     return SYSERR;
   }
-*/
+
   // Read file contents stored in the data blocks, 
   // always read starting from fileptr
 
@@ -617,7 +617,7 @@ int fs_write(int fd, void *buf, int nbytes) {
     }
   oft[fd].fileptr += nbytes;
  //kprintf("line 591: nbytes: %d, oft[fd].in.size: %d,  oft[fd].fileptr: %d\n", nbytes, oft[fd].in.size,oft[fd].fileptr);
- //kprintf("line 597: pointer: %d\n",oft[fd].fileptr);
+ //kprintf("line 597: pointer: %d, size %d \n",oft[fd].fileptr,oft[fd].in.size );
   return nbytes;
 }
 
