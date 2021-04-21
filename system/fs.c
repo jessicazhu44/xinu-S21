@@ -607,7 +607,7 @@ int fs_write(int fd, void *buf, int nbytes) {
     }
   oft[fd].fileptr += nbytes;
  //kprintf("line 591: nbytes: %d, oft[fd].in.size: %d,  oft[fd].fileptr: %d\n", nbytes, oft[fd].in.size,oft[fd].fileptr);
- kprintf("line 597: size: %d\n", oft[fd].in.size);
+ //kprintf("line 597: size: %d\n", oft[fd].in.size);
   return nbytes;
 }
 
