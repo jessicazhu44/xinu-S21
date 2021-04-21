@@ -560,9 +560,11 @@ int fs_write(int fd, void *buf, int nbytes) {
     // int bs_bwrite(int bsdev, int block, int offset, void *buf, int len);
     bs_bwrite(dev0, _fs_fileblock_to_diskblock(0, fd, bl), inn, buf, nbytes);
     fs_setmaskbit(oft[fd].in.blocks[bl]);
-    oft[fd].in.size += nbytes;
+    if(oft[fd].fileptr + nbytes > oft[fd].in.size) {
+      oft[fd].in.size = oft[fd].fileptr + nbytes;
+    }
     oft[fd].fileptr += nbytes;    
-    // kprintf("line 562: hi\n");
+    
     return nbytes;
   }
 
@@ -587,10 +589,12 @@ int fs_write(int fd, void *buf, int nbytes) {
    // kprintf("line 584: bytes_to_write: %d, left to write: %d,  bl: %d\n", bytes_to_write, nbytes - bytes_to_write,bl);
   bs_bwrite(dev0, _fs_fileblock_to_diskblock(0, fd, bl), 0, buf+(nbytes - bytes_to_write), bytes_to_write);
 
-  oft[fd].in.size += nbytes;
+  if(oft[fd].fileptr + nbytes > oft[fd].in.size) {
+      oft[fd].in.size = oft[fd].fileptr + nbytes;
+    }
   oft[fd].fileptr += nbytes;
  //kprintf("line 591: nbytes: %d, oft[fd].in.size: %d,  oft[fd].fileptr: %d\n", nbytes, oft[fd].in.size,oft[fd].fileptr);
-
+// kprintf("line 597: size: %d\n", oft[fd].in.size);
   return nbytes;
 }
 

@@ -167,27 +167,32 @@ buf2 = getmem(sizeof(int) * buf_size);
 for (i = 0; i < buf_size; i++) {
   buf1[i] = i;
   buf2[i] =  0;
-  
     //printf("buff1: %d , buff2: %d \n",buf1[i], buf2[i] );
-  
 }
 
 ASSERT_PASS(fd = fs_create("file", O_CREAT))
-
-
 ASSERT_TRUE(fs_write(fd, buf1, buf_size) == buf_size)
-//int fs_seek(int fd, int offset)
-//ASSERT_PASS(fs_seek(fd, 5119))
-//ASSERT_TRUE(fs_write(fd, buf1, buf_size)==0)
 ASSERT_PASS(fs_seek(fd, 0))
-ASSERT_TRUE(fs_read(fd, buf2, buf_size) == buf_size)
+ASSERT_TRUE(fs_write(fd, buf1, buf_size) == buf_size)
+ASSERT_PASS(fs_seek(fd, 10))
+ASSERT_TRUE(fs_write(fd, buf1, buf_size) == buf_size)
+ASSERT_PASS(fs_seek(fd, 0))
+ASSERT_TRUE(fs_write(fd, buf1, buf_size) == buf_size)
+/*
+ASSERT_PASS(fd = fs_create("file", O_CREAT))
+ASSERT_PASS(fs_link("file", "linkc"))
+ASSERT_PASS(fs_link("linkc", "linkb"))
+ASSERT_PASS(fs_link("linkb", "linka"))
+ASSERT_TRUE(fs_write(fd, buf1, buf_size) == buf_size)
+ASSERT_PASS(fs_seek(fd, 0))
+ASSERT_TRUE(fs_read(fd ,buf2, buf_size) == buf_size)
 
 for (i = 10; i < buf_size; i++) {
   //printf("buff1: %p , buff2: %p \n",&buf1[i], &buf2[i] );
   ASSERT_TRUE(buf1[i] == buf2[i])
 }
 
-
+*/
 
 ASSERT_PASS(fs_close(fd))
 
