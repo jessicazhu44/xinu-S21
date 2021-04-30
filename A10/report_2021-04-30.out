@@ -1,0 +1,15 @@
+Test     Result  Points
+----     ------  ------
+init0    PASS      0/ 0
+init1    PASS      0/ 0
+init2    PASS      0/ 0
+init3    PASS      0/ 0
+easy0    FAIL      0/ 6
+easy1    PASS      6/ 6
+medium0  FAIL      0/12
+medium1  FAIL      0/12
+medium2  FAIL      0/12
+hard0    PASS     26/26
+hard1    PASS     26/26
+                 
+Total            58/100
