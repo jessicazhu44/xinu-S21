@@ -3,7 +3,7 @@
 
 #define FSTEST_DEBUG // comment out this one to remove "error message"
 #ifdef FSTEST_DEBUG
-#define errormsg(fmt, ...) printf("\033[31mERROR %20s:%-3d\033[39m " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
+#define errormsg(fmt, ...) printf("\033[31mERROR %20s:%-3d()\033[39m " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 #else
 #define errormsg(fmt, ...)
 #endif

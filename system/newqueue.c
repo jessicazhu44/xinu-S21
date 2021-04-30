@@ -14,7 +14,6 @@ qid16	newqueue(void)
   intmask mask;
   
   mask = disable();
-  
 	q = nextqid;
 
   for(i=0; i < NQENT; i+=2) {

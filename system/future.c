@@ -57,9 +57,22 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 		char* headelemptr;
 		f->pid = getpid();
 
-		if (f->pid > 0 && f->mode == FUTURE_EXCLUSIVE) {   
+		if (f->mode == FUTURE_EXCLUSIVE && f->count < 1) {
+		// if (f->pid > 0 && f->mode == FUTURE_EXCLUSIVE) {
+			if(f->state == FUTURE_WAITING) {
+				restore(mask);
+				return SYSERR;
+			}
+
+			f->state = FUTURE_WAITING;
+			f->pid = getpid();
+			suspend(f->pid);
+			headelemptr = f->data + (f->head * f->size);
+			memcpy(out, headelemptr, f->size);
+			f->head = (f->head + 1) % f->max_elems; 
+			f->count = f->count - 1;
 			restore(mask);
-			return SYSERR;
+			return OK;
 		}
 		
 		if (f->state == FUTURE_EMPTY) {
@@ -108,22 +121,26 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 				restore(mask);
 				return OK;
 			} 
-			
+	
 			headelemptr = f->data + (f->head * f->size);
-			memcpy(out, headelemptr, f->size);
+			memcpy(out, headelemptr, f->size); //??? change 
+			/*
 			if (resume(dequeue(f->get_queue)) == NULL){
 				memcpy(out, headelemptr, f->size);
-			}
+
+			}*/
 			f->head = (f->head + 1) % f->max_elems;
 			f->count = f->count - 1;
 
-			if (f->count < f->max_elems) {
+			if ((f->count < f->max_elems) && f->mode != FUTURE_EXCLUSIVE) {
 				resume(dequeue(f->set_queue)); 
+
 			}
 
 			if(f->mode == FUTURE_EXCLUSIVE) {
 				f->state = FUTURE_EMPTY;
 				f->pid = -1;
+	
 			}
 			restore(mask);
 			return OK;
@@ -141,6 +158,7 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 		char* tailelemptr; 
 
 		if (f->state == FUTURE_EMPTY) {
+
 			f->state = FUTURE_READY;
 			tailelemptr = f->data + (f->tail * f->size); 
 			memcpy(tailelemptr,in, f->size);
@@ -155,12 +173,15 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 		if (f->state == FUTURE_WAITING) {
 
 			if(f->mode == FUTURE_EXCLUSIVE) {
+
 				f->state = FUTURE_EMPTY;
 				f->count = f->count+1;
 				tailelemptr = f->data + (f->tail * f->size); 
 				memcpy(tailelemptr,in, f->size);
 				f->tail = (f->tail + 1) % f->max_elems;
-				resume(dequeue(f->get_queue));
+				pid32 pid = dequeue(f->get_queue);
+				resume(pid);
+
 				f->pid = -1;				
 			}
 
@@ -171,7 +192,7 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 
 			if (f->mode == FUTURE_QUEUE) {
 				f->state = FUTURE_READY;
-				if(f->max_elems == f->count) { // queue is full
+				if(f->max_elems == f->count) {
 					enqueue(f->pid, f->set_queue);
 					suspend(f->pid);
 				} else { // queue not full
@@ -187,7 +208,7 @@ future_t* future_alloc(future_mode_t mode, uint size, uint nelem)
 		}
 
 		if(f->state == FUTURE_READY) {
-			
+
 			if (f->mode == FUTURE_EXCLUSIVE || f->mode == FUTURE_SHARED) {
 				restore(mask);
 				return SYSERR;

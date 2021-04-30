@@ -5,6 +5,7 @@
 #include <string.h>
 
 #ifdef ETHER0
+#define VERBOSE
 
 /*------------------------------------------------------------------------
  * xsh_udpeserver - shell command that acts as a UDP echo server (is
@@ -15,12 +16,13 @@ shellcmd xsh_udpeserver(int nargs, char *args[])
 {
 	int32	retval;			/* return value from sys calls	*/
 	uint32	localip;		/* local IP address		*/
+	char	str[40];		/* temporary used for formatting */
 	uint32	remip;			/* remote sender's IP address	*/
 	uint16	remport;		/* remote sender's UDP port	*/
 	char	buff[1500];		/* buffer for incoming reply	*/
 	int32	msglen;			/* length of outgoing message	*/
 	int32	slot;			/* slot in UDP table 		*/
-	uint16	echoserverport= 7;	/* port number for UDP echo	*/
+	uint16	echoserverport= 7777;	/* port number for UDP echo	*/
 
 	/* For argument '--help', emit a help message	*/
 
@@ -58,6 +60,10 @@ shellcmd xsh_udpeserver(int nargs, char *args[])
 				args[0], echoserverport);
 		return 1;
 	}
+	sprintf(str, "%d.%d.%d.%d",
+		(localip>>24)&0xff, (localip>>16)&0xff,
+		(localip>>8)&0xff,        localip&0xff);
+	printf("UDP Echo server running on %s:%d\n", str, echoserverport);
 
 	/* Do forever: read an incoming datagram and send it back */
 
@@ -73,6 +79,18 @@ shellcmd xsh_udpeserver(int nargs, char *args[])
 			return 1;
 		}
 		msglen = retval;
+
+#ifdef VERBOSE
+		printf("> length=%d from=0 to=%d\n ", msglen, msglen - 1);
+		int i;
+		for (i = 0; i < msglen; i++) {
+			printf(" %02x", buff[i]);
+		}
+		printf("     %s\n", buff);
+#endif
+
+		if ((msglen == 4 || msglen == 5) && strncmp(buff, "exit", 4) == 0) break;
+
 		retval = udp_sendto(slot, remip, remport, buff, msglen);
 		if (retval == SYSERR) {
 			fprintf(stderr, "%s: udp_sendto failed\n",

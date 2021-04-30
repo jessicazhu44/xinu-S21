@@ -82,6 +82,8 @@ void	udp_in(
  *		      remote site sent to the specified local port
  *------------------------------------------------------------------------
  */
+
+// udp_register(remip, remport, locport) --> return int32 slot
 uid32	udp_register (
 	 uint32	remip,			/* Remote IP address or zero	*/
 	 uint16	remport,		/* Remote UDP protocol port	*/

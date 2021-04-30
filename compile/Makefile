@@ -222,11 +222,20 @@ install: xinu
 etags:
 	@(cd $(TOPDIR); find . -name '*.[chS]' -exec etags -a {} \;)
 
+ifeq ($(PLATFORM),arm-qemu)
 qemu: xinu
 	export QEMU_AUDIO_DRV=wav; export QEMU_WAV_PATH=$(TOPDIR)/compile/.wav.wav; qemu-system-arm -M versatilepb -m 256M -nographic -cpu arm1176 -kernel xinu.boot
-
 qemu-gdb: xinu
 	export QEMU_AUDIO_DRV=wav; export QEMU_WAV_PATH=$(TOPDIR)/compile/.wav.wav; qemu-system-arm -M versatilepb -m 256M -nographic -cpu arm1176 -kernel xinu.boot -S -gdb tcp::${GPORT}
+else ifeq ($(PLATFORM),x86-qemu)
+qemu: xinu
+	qemu-system-i386 -m 512M -netdev bridge,br=virbr0,id=t0 -device e1000-82545em,netdev=t0,mac=00:00:00:00:00:ff -kernel xinu -nographic
+qemu2: xinu
+	qemu-system-i386 -m 512M -netdev bridge,br=virbr0,id=t0 -device e1000-82545em,netdev=t0,mac=00:00:00:00:00:fe -kernel xinu -nographic
+qemu-gdb: xinu
+	qemu-system-i386 -m 512M -netdev bridge,br=virbr0,id=t0 -device e1000-82545em,netdev=t0,mac=00:00:00:00:00:ff -kernel xinu -nographic -S -gdb tcp::${GPORT}
+endif
+
 #--------------------------------------------------------------------------------
 # Locations of source directories and exceptions (.c and .[sS] files to exclude)
 #--------------------------------------------------------------------------------

@@ -1,3 +1,7 @@
+
+extern shellcmd xsh_ufuserver(int nargs, char *args[]);
+extern shellcmd xsh_ufuclient(int nargs, char *args[]);
+
 extern	shellcmd	xsh_run(int32, char *[]);
 /* in file xsh_prodcons.c */
 extern	shellcmd	xsh_prodcons(int32, char *[]);

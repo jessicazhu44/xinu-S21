@@ -7,10 +7,10 @@
 #define UFU_TIMEOUT 500
 #define UFU_RETRIES 1
 
-/* #define UFU_DEBUG */
+#define UFU_DEBUG 
 
-#ifdef UFU_DEBUG
-#define errormsg(fmt, ...) printf("\033[31mERROR %20s:%-3d %30s()\033[39m " fmt, __FILE__, __LINE__,  __func__ __VA_OPT__(,) __VA_ARGS__);
+#ifdef UFU_DEBUG 
+#define errormsg(fmt, ...) printf("\033[31mERROR %20s:%-3d ()\033[39m " fmt, __FILE__, __LINE__, ##__VA_ARGS__);
 #else
 #define errormsg(fmt, ...)
 #endif
